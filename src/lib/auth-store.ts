@@ -1,9 +1,23 @@
 import { create } from "zustand";
 import { type StateStorage, createJSONStorage, persist } from "zustand/middleware";
 
+export interface SessionUser {
+  id: string;
+  email: string;
+  role: "ADMIN" | "GRADUATE" | "COMPANY";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Session {
+  accessToken: string;
+  user: SessionUser;
+}
+
 interface AuthState {
   token: string | null;
-  setToken: (token: string) => void;
+  user: SessionUser | null;
+  setSession: (session: Session) => void;
   clearSession: () => void;
 }
 
@@ -18,8 +32,9 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       token: null,
-      setToken: (token) => set({ token }),
-      clearSession: () => set({ token: null }),
+      user: null,
+      setSession: ({ accessToken, user }) => set({ token: accessToken, user }),
+      clearSession: () => set({ token: null, user: null }),
     }),
     {
       name: "sisebt-auth",

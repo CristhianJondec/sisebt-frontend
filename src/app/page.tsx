@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { CircleCheck, CircleX, Loader2, RefreshCw } from "lucide-react";
+import { SessionCard } from "@/components/session-card";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -104,6 +105,8 @@ export default function Home() {
           </Button>
         </CardContent>
       </Card>
+
+      <SessionCard />
     </main>
   );
 }

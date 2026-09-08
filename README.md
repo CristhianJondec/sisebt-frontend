@@ -32,6 +32,19 @@ La home muestra **"Backend Status: Online / Offline"** consultando
 `GET /health` de la API. Para verla en `Online`, arranca antes el backend
 (`sisebt-backend`, puerto 4000).
 
+### Rutas
+
+| Ruta | Descripcion |
+|---|---|
+| `/` | Estado del backend + tarjeta de sesion (lista usuarios si hay token) |
+| `/login` | Formulario de acceso contra `POST /auth/login` |
+
+Para probar el flujo completo, registra primero un usuario en el backend:
+
+```bash
+curl -X POST http://localhost:4000/api/v1/users   -H "Content-Type: application/json"   -d '{"email":"egresado@sisebt.edu.mx","password":"contrasena-segura"}'
+```
+
 ---
 
 ## Variables de entorno
@@ -70,9 +83,18 @@ Next. Por eso el valor correcto es la URL publica de la API
   no hay sesion, elimina el header para que no se arrastre uno viejo.
 - **Response** — ante un **401** limpia la sesion y redirige a `/login`.
 
-> La ruta `/login` todavia no existe en este scaffold; se creara junto con el
-> modulo de autenticacion. La redireccion vive en `src/lib/navigation.ts` para
-> que los tests puedan mockearla sin manipular `window.location`.
+La redireccion vive en `src/lib/navigation.ts` para que los tests puedan
+mockearla sin manipular `window.location`.
+
+> **Excepcion importante:** el 401 de `POST /auth/login` **no** dispara la
+> redireccion. Unas credenciales incorrectas son un error del formulario, no una
+> sesion caducada; si redirigieramos, se recargaria `/login` y el usuario
+> perderia lo que escribio. La lista de rutas exentas esta en
+> `RUTAS_EXENTAS_DE_REDIRECCION`.
+
+El token se guarda en el store de Zustand con `persist`. Como `localStorage` no
+existe en SSR, los componentes leen la sesion con el hook `useSession()`, que
+solo la expone tras el montaje para evitar un *hydration mismatch*.
 
 `src/providers/query-provider.tsx` monta el `QueryClientProvider` y esta
 integrado en `src/app/layout.tsx`.
@@ -98,7 +120,8 @@ pnpm test:e2e    # Playwright
 | Archivo | Que cubre |
 |---|---|
 | `src/app/page.test.tsx` | Estado de carga inicial; `Online` con 200; `Offline` con 503 y con error de red |
-| `src/lib/api-client.test.ts` | El interceptor adjunta (o no) el header `Authorization`; un 401 limpia sesion y redirige |
+| `src/lib/api-client.test.ts` | El interceptor adjunta (o no) el header `Authorization`; un 401 limpia sesion y redirige, salvo si viene del login |
+| `src/app/login/page.test.tsx` | Render del formulario; login correcto guarda sesion y redirige; un 401 muestra error sin guardar sesion |
 
 Piezas de apoyo:
 
@@ -117,9 +140,10 @@ pnpm exec playwright install chromium   # solo la primera vez
 pnpm test:e2e
 ```
 
-`playwright.config.ts` levanta `pnpm dev` automaticamente (`webServer`). El
-smoke test de `e2e/smoke.spec.ts` no exige que la API este arriba: verifica que
-el badge de estado se renderiza y resuelve a uno de sus tres estados.
+`playwright.config.ts` levanta `pnpm dev` automaticamente (`webServer`). Los
+smoke tests de `e2e/smoke.spec.ts` no exigen que la API este arriba: verifican
+que el badge de estado se renderiza y resuelve a uno de sus tres estados, y que
+el enlace de la home lleva al formulario de `/login`.
 
 ---
 
@@ -147,18 +171,23 @@ sisebt-frontend/
 ├── src/
 │   ├── app/
 │   │   ├── layout.tsx                 # QueryProvider + Toaster
+│   │   ├── login/                     # formulario de acceso + su test
 │   │   ├── page.tsx                   # Backend Status: Online / Offline
 │   │   └── page.test.tsx
-│   ├── components/ui/                 # shadcn/ui: button, input, card, sonner, table
+│   ├── components/
+│   │   ├── session-card.tsx           # sesion activa, lista protegida y logout
+│   │   └── ui/                        # shadcn/ui: button, input, card, sonner, table
 │   ├── lib/
 │   │   ├── api-client.ts              # axios + interceptores
 │   │   ├── api-client.test.ts
+│   │   ├── auth.ts                    # login() y fetchUsers()
 │   │   ├── auth-store.ts              # Zustand + persist
 │   │   ├── health.ts
-│   │   └── navigation.ts
+│   │   ├── navigation.ts
+│   │   └── use-session.ts             # lectura de sesion segura en SSR
 │   ├── providers/query-provider.tsx
 │   └── test/                          # setup, MSW y renderWithProviders
 ├── Dockerfile
 ├── playwright.config.ts
-└── vitest.config.ts
+└── vitest.config.mts
 ```

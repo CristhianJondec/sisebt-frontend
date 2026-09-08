@@ -11,12 +11,25 @@ vi.mock("@/lib/navigation", () => ({
   redirectToLogin: vi.fn(),
 }));
 
+const USUARIO = {
+  id: 'ec1f0d3c-0000-4000-8000-000000000001',
+  email: 'egresado@sisebt.edu.mx',
+  role: 'GRADUATE',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+} as const;
+
+function autenticar(accessToken: string): void {
+  useAuthStore.getState().setSession({ accessToken, user: { ...USUARIO } });
+}
+
 function configVacia(): InternalAxiosRequestConfig {
   return { headers: new AxiosHeaders() } as InternalAxiosRequestConfig;
 }
 
-function errorConEstado(status: number): AxiosError {
+function errorConEstado(status: number, url = "/health"): AxiosError {
   const error = new AxiosError("fallo", String(status));
+  error.config = { ...configVacia(), url };
   error.response = {
     status,
     statusText: "",
@@ -29,12 +42,12 @@ function errorConEstado(status: number): AxiosError {
 
 beforeEach(() => {
   vi.mocked(redirectToLogin).mockClear();
-  useAuthStore.setState({ token: null });
+  useAuthStore.setState({ token: null, user: null });
 });
 
 describe("attachAuthToken", () => {
   it("adjunta el header Authorization cuando hay token", () => {
-    useAuthStore.getState().setToken("token-de-prueba");
+    autenticar("token-de-prueba");
 
     const config = attachAuthToken(configVacia());
 
@@ -57,7 +70,7 @@ describe("attachAuthToken", () => {
 
 describe("handleUnauthorized", () => {
   it("ante un 401 limpia la sesion y redirige al login", async () => {
-    useAuthStore.getState().setToken("token-de-prueba");
+    autenticar("token-de-prueba");
     const error = errorConEstado(401);
 
     await expect(handleUnauthorized(error)).rejects.toBe(error);
@@ -66,8 +79,18 @@ describe("handleUnauthorized", () => {
     expect(redirectToLogin).toHaveBeenCalledTimes(1);
   });
 
+  it("no redirige cuando el 401 viene de un intento de login", async () => {
+    // Credenciales incorrectas son un error del formulario, no una sesion
+    // caducada: redirigir recargaria /login y borraria lo que el usuario escribio.
+    const error = errorConEstado(401, "/auth/login");
+
+    await expect(handleUnauthorized(error)).rejects.toBe(error);
+
+    expect(redirectToLogin).not.toHaveBeenCalled();
+  });
+
   it("no toca la sesion ante otros errores", async () => {
-    useAuthStore.getState().setToken("token-de-prueba");
+    autenticar("token-de-prueba");
     const error = errorConEstado(500);
 
     await expect(handleUnauthorized(error)).rejects.toBe(error);

@@ -30,9 +30,19 @@ export function attachAuthToken(
   return config;
 }
 
+/**
+ * Rutas cuyo 401 es una respuesta esperada del negocio, no una sesion expirada.
+ * Un login con credenciales incorrectas devuelve 401: si lo tratasemos como
+ * sesion caducada, recargariamos /login y el usuario perderia el formulario.
+ */
+const RUTAS_EXENTAS_DE_REDIRECCION = ['/auth/login'];
+
 /** Interceptor de response: ante un 401 limpia la sesion y manda al login. */
 export function handleUnauthorized(error: AxiosError): Promise<never> {
-  if (error.response?.status === 401) {
+  const url = error.config?.url ?? '';
+  const esIntentoDeLogin = RUTAS_EXENTAS_DE_REDIRECCION.some((ruta) => url.includes(ruta));
+
+  if (error.response?.status === 401 && !esIntentoDeLogin) {
     useAuthStore.getState().clearSession();
     redirectToLogin();
   }

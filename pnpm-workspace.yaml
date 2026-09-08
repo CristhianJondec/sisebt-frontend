@@ -1,3 +1,10 @@
-ignoredBuiltDependencies:
-  - sharp
-  - unrs-resolver
+# Archivo de AJUSTES de pnpm (NO declara `packages:`, por lo tanto este repo
+# no es un workspace/monorepo). pnpm 12 decide los build scripts con `allowBuilds`.
+allowBuilds:
+  # Resolver nativo que usa eslint-import-resolver; sin su binario cae a un
+  # fallback mucho mas lento.
+  unrs-resolver: true
+  # Optimizacion de imagenes de next/image.
+  sharp: true
+  # Copia el service worker de MSW a public/ (solo lo usa el modo navegador).
+  msw: true

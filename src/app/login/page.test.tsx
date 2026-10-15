@@ -29,7 +29,16 @@ describe("LoginPage", () => {
     expect(screen.getByRole("button", { name: /entrar/i })).toBeEnabled();
   });
 
-  it("guarda la sesion y redirige al inicio cuando las credenciales son validas", async () => {
+  it("enlaza con la recuperacion de contrasena", () => {
+    renderWithProviders(<LoginPage />);
+
+    expect(screen.getByRole("link", { name: /olvidaste tu contrasena/i })).toHaveAttribute(
+      "href",
+      "/forgot-password",
+    );
+  });
+
+  it("guarda la sesion y redirige al egresado a su perfil cuando las credenciales son validas", async () => {
     push.mockClear();
     renderWithProviders(<LoginPage />);
 
@@ -37,7 +46,7 @@ describe("LoginPage", () => {
 
     await waitFor(() => expect(useAuthStore.getState().token).toBe(SESION.accessToken));
     expect(useAuthStore.getState().user?.email).toBe(SESION.user.email);
-    expect(push).toHaveBeenCalledWith("/");
+    expect(push).toHaveBeenCalledWith("/perfil");
   });
 
   it("muestra un error y no guarda sesion cuando la API responde 401", async () => {

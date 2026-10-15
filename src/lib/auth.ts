@@ -6,11 +6,29 @@ export interface Credenciales {
   password: string;
 }
 
+export interface NuevaPassword {
+  token: string;
+  password: string;
+}
+
 export const USERS_QUERY_KEY = ["users"] as const;
 
 export async function login(credenciales: Credenciales): Promise<Session> {
   const { data } = await apiClient.post<Session>("/auth/login", credenciales);
   return data;
+}
+
+/**
+ * El backend responde 202 con el mismo mensaje exista o no la cuenta, asi que
+ * aqui no hay nada que distinguir: solo errores de red o de validacion.
+ */
+export async function forgotPassword(email: string): Promise<void> {
+  await apiClient.post("/auth/forgot-password", { email });
+}
+
+/** 204 si el token es valido; 400 si es invalido, ya se uso o expiro. */
+export async function resetPassword(datos: NuevaPassword): Promise<void> {
+  await apiClient.post("/auth/reset-password", datos);
 }
 
 /** Ruta protegida: el interceptor adjunta el bearer token automaticamente. */

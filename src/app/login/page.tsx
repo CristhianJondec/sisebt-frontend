@@ -3,6 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { LogIn } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
@@ -15,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { login } from "@/lib/auth";
 import { useAuthStore } from "@/lib/auth-store";
 
@@ -30,7 +32,8 @@ export default function LoginPage() {
     onSuccess: (sesion) => {
       setSession(sesion);
       toast.success(`Sesion iniciada como ${sesion.user.email}`);
-      router.push("/");
+      // El egresado va directo a su perfil: si aun no lo tiene, debe completarlo.
+      router.push(sesion.user.role === "GRADUATE" ? "/perfil" : "/");
     },
     onError: (error) => {
       const mensaje =
@@ -57,9 +60,7 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
             <div className="flex flex-col gap-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Correo electronico
-              </label>
+              <Label htmlFor="email">Correo electronico</Label>
               <Input
                 id="email"
                 name="email"
@@ -73,9 +74,15 @@ export default function LoginPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Contrasena
-              </label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Contrasena</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                >
+                  ¿Olvidaste tu contrasena?
+                </Link>
+              </div>
               <Input
                 id="password"
                 name="password"

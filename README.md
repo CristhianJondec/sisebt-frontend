@@ -36,8 +36,18 @@ La home muestra **"Backend Status: Online / Offline"** consultando
 
 | Ruta | Descripcion |
 |---|---|
-| `/` | Estado del backend + tarjeta de sesion (lista usuarios si hay token) |
-| `/login` | Formulario de acceso contra `POST /auth/login` |
+| `/` | Estado del backend + tarjeta de sesion (la lista de usuarios solo la ve un `ADMIN`) |
+| `/login` | Formulario de acceso contra `POST /auth/login`, con enlace a la recuperacion |
+| `/forgot-password` | Pide el enlace de recuperacion (`POST /auth/forgot-password`); mensaje generico exista o no la cuenta |
+| `/reset-password?token=...` | Define la nueva contrasena (`POST /auth/reset-password`) y vuelve a `/login` |
+
+### Secciones por rol
+
+`<RoleGate roles={["ADMIN"]}>...</RoleGate>` (en `src/components/role-gate.tsx`)
+solo renderiza su contenido si el rol de la sesion esta en la lista; `tieneRol()`
+(`src/lib/roles.ts`) sirve para condicionar tambien las consultas (`enabled`)
+y no pedir datos que el backend respondera con 403. Es solo presentacion: la
+autorizacion real la aplica el backend.
 
 Para probar el flujo completo, registra primero un usuario en el backend:
 
@@ -121,7 +131,11 @@ pnpm test:e2e    # Playwright
 |---|---|
 | `src/app/page.test.tsx` | Estado de carga inicial; `Online` con 200; `Offline` con 503 y con error de red |
 | `src/lib/api-client.test.ts` | El interceptor adjunta (o no) el header `Authorization`; un 401 limpia sesion y redirige, salvo si viene del login |
-| `src/app/login/page.test.tsx` | Render del formulario; login correcto guarda sesion y redirige; un 401 muestra error sin guardar sesion |
+| `src/app/login/page.test.tsx` | Render del formulario; login correcto guarda sesion y redirige; un 401 muestra error sin guardar sesion; enlace a la recuperacion |
+| `src/app/forgot-password/page.test.tsx` | Envia el email y muestra el mensaje generico; error de validacion (400) |
+| `src/components/auth/reset-password-form.test.tsx` | Sin token, longitud minima, confirmacion, exito (redirige a `/login`) y token rechazado (400) |
+| `src/components/session-card.test.tsx` | Un ADMIN ve la tabla de usuarios; GRADUATE y COMPANY no la ven ni consultan `GET /users` |
+| `src/lib/roles.test.ts` | `tieneRol()` y las reglas de contrasena |
 
 Piezas de apoyo:
 

@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { describe, expect, it, vi } from "vitest";
-import LoginPage from "@/app/login/page";
+import LoginPage from "@/app/(auth)/login/page";
 import { useAuthStore } from "@/lib/auth-store";
 import { API_BASE, SESION } from "@/test/msw/handlers";
 import { server } from "@/test/msw/server";
@@ -15,8 +15,8 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 async function rellenarYEnviar(password = "contrasena-segura") {
   const usuario = userEvent.setup();
 
-  await usuario.type(screen.getByLabelText(/correo electronico/i), SESION.user.email);
-  await usuario.type(screen.getByLabelText(/contrasena/i), password);
+  await usuario.type(screen.getByLabelText(/correo electrónico/i), SESION.user.email);
+  await usuario.type(screen.getByLabelText(/contraseña/i), password);
   await usuario.click(screen.getByRole("button", { name: /entrar/i }));
 }
 
@@ -24,15 +24,15 @@ describe("LoginPage", () => {
   it("renderiza el formulario de acceso", () => {
     renderWithProviders(<LoginPage />);
 
-    expect(screen.getByLabelText(/correo electronico/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/contrasena/i)).toHaveAttribute("type", "password");
+    expect(screen.getByLabelText(/correo electrónico/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/contraseña/i)).toHaveAttribute("type", "password");
     expect(screen.getByRole("button", { name: /entrar/i })).toBeEnabled();
   });
 
   it("enlaza con la recuperacion de contrasena", () => {
     renderWithProviders(<LoginPage />);
 
-    expect(screen.getByRole("link", { name: /olvidaste tu contrasena/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /olvidaste tu contraseña/i })).toHaveAttribute(
       "href",
       "/forgot-password",
     );

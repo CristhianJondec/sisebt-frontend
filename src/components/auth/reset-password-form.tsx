@@ -22,9 +22,9 @@ interface ResetPasswordFormProps {
 function EnlaceInvalido() {
   return (
     <Alert variant="destructive">
-      <AlertTitle>Enlace no valido</AlertTitle>
+      <AlertTitle>Enlace no válido</AlertTitle>
       <AlertDescription>
-        El enlace de recuperacion no es valido, ya se uso o ha expirado.{" "}
+        El enlace de recuperación no es válido, ya se usó o ha expirado.{" "}
         <Link href="/forgot-password">Solicita uno nuevo</Link>.
       </AlertDescription>
     </Alert>
@@ -41,7 +41,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const mutacion = useMutation({
     mutationFn: resetPassword,
     onSuccess: () => {
-      toast.success("Contrasena actualizada. Ya puedes iniciar sesion.");
+      toast.success("Contraseña actualizada. Ya puedes iniciar sesión.");
       router.push("/login");
     },
   });
@@ -60,21 +60,22 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
 
     const error =
       validarPassword(password) ??
-      (password !== confirmacion ? "Las contrasenas no coinciden" : null);
+      (password !== confirmacion ? "Las contraseñas no coinciden" : null);
     setErrorLocal(error);
 
     if (!error && token) mutacion.mutate({ token, password });
   }
 
   return (
-    <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
+    <form onSubmit={enviar} className="flex flex-col gap-5" noValidate>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="password">Nueva contrasena</Label>
+        <Label htmlFor="password">Nueva contraseña</Label>
         <Input
           id="password"
           name="password"
           type="password"
           autoComplete="new-password"
+          className="h-10"
           required
           minLength={PASSWORD_MIN_LENGTH}
           value={password}
@@ -83,17 +84,18 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
           aria-describedby="password-ayuda"
         />
         <p id="password-ayuda" className="text-xs text-muted-foreground">
-          Minimo {PASSWORD_MIN_LENGTH} caracteres.
+          Mínimo {PASSWORD_MIN_LENGTH} caracteres.
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="confirmacion">Confirmar contrasena</Label>
+        <Label htmlFor="confirmacion">Confirmar contraseña</Label>
         <Input
           id="confirmacion"
           name="confirmacion"
           type="password"
           autoComplete="new-password"
+          className="h-10"
           required
           value={confirmacion}
           onChange={(evento) => setConfirmacion(evento.target.value)}
@@ -104,14 +106,14 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
       {(errorLocal || mutacion.isError) && (
         <Alert variant="destructive">
           <AlertDescription>
-            {errorLocal ?? "No se pudo contactar la API. Intentalo de nuevo."}
+            {errorLocal ?? "No se pudo contactar la API. Inténtalo de nuevo."}
           </AlertDescription>
         </Alert>
       )}
 
-      <Button type="submit" disabled={mutacion.isPending}>
+      <Button type="submit" size="lg" disabled={mutacion.isPending}>
         <KeyRound aria-hidden />
-        {mutacion.isPending ? "Guardando..." : "Guardar contrasena"}
+        {mutacion.isPending ? "Guardando..." : "Guardar contraseña"}
       </Button>
     </form>
   );

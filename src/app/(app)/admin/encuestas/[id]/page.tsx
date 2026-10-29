@@ -3,10 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDown,
-  ArrowLeft,
   ArrowUp,
   BarChart3,
-  Loader2,
   Lock,
   Pencil,
   Plus,
@@ -17,7 +15,10 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/layout/page-header";
 import { RequireRole } from "@/components/require-role";
+import { ErrorState, LoadingState } from "@/components/states";
+import { SurveyStatusBadge } from "@/components/status-badges";
 import { QuestionForm } from "@/components/surveys/question-form";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -29,7 +30,6 @@ import { apiErrorMessage } from "@/lib/graduates";
 import {
   QUESTION_TYPE_LABELS,
   SURVEYS_QUERY_KEY,
-  SURVEY_STATUS_LABELS,
   type SurveyDetail,
   audienceLabel,
   closeSurvey,
@@ -75,36 +75,38 @@ function Preguntas({ survey }: { survey: SurveyDetail }) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="border-b">
         <CardTitle>Preguntas ({survey.questions.length})</CardTitle>
         {!editable && (
           <CardDescription>La encuesta ya fue publicada: las preguntas no se pueden modificar.</CardDescription>
         )}
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <ol className="flex flex-col gap-2">
+        <ol className="flex flex-col gap-2.5">
           {survey.questions.map((q, i) =>
             editando === q.id ? (
               <li key={q.id}>
                 <QuestionForm surveyId={survey.id} question={q} onClose={() => setEditando(null)} />
               </li>
             ) : (
-              <li key={q.id} className="flex items-start gap-3 rounded-lg border p-3">
-                <span className="text-sm text-muted-foreground tabular-nums">{i + 1}.</span>
+              <li key={q.id} className="group flex items-start gap-3 rounded-xl border p-4 transition-colors hover:bg-muted/30">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary tabular-nums">
+                  {i + 1}
+                </span>
                 <div className="flex flex-1 flex-col gap-1">
                   <p className="font-medium">
                     {q.text} {q.required && <span className="text-destructive">*</span>}
                   </p>
                   <div className="flex flex-wrap gap-1">
                     <Badge variant="secondary">{QUESTION_TYPE_LABELS[q.type]}</Badge>
-                    {q.isSatisfaction && <Badge variant="outline">Satisfacción (por defecto)</Badge>}
+                    {q.isSatisfaction && <Badge variant="soft">Satisfacción (por defecto)</Badge>}
                   </div>
                   {q.options.length > 0 && (
                     <p className="text-sm text-muted-foreground">{q.options.join(" · ")}</p>
                   )}
                 </div>
                 {editable && (
-                  <div className="flex gap-1">
+                  <div className="flex gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
                     <Button size="icon-sm" variant="ghost" aria-label="Subir" disabled={i === 0 || reordenar.isPending}
                       onClick={() => mover(i, -1)}>
                       <ArrowUp aria-hidden />
@@ -124,7 +126,7 @@ function Preguntas({ survey }: { survey: SurveyDetail }) {
                           onClick={() => {
                             if (confirm("¿Eliminar esta pregunta?")) eliminar.mutate(q.id);
                           }}>
-                          <Trash2 aria-hidden />
+                          <Trash2 aria-hidden className="text-destructive" />
                         </Button>
                       </>
                     )}
@@ -180,12 +182,15 @@ function Publicar({ survey }: { survey: SurveyDetail }) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Publicar</CardTitle>
+      <CardHeader className="border-b">
+        <CardTitle className="flex items-center gap-2">
+          <Send aria-hidden className="size-4 text-primary" />
+          Publicar
+        </CardTitle>
         <CardDescription>Define el periodo de respuesta y a quién va dirigida.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={enviar} className="grid gap-4 sm:grid-cols-3">
+        <form onSubmit={enviar} className="grid gap-5 sm:grid-cols-3">
           <div className="flex flex-col gap-2">
             <Label htmlFor="opensAt">Apertura *</Label>
             <Input id="opensAt" type="date" required value={opensAt}
@@ -206,10 +211,12 @@ function Publicar({ survey }: { survey: SurveyDetail }) {
               ))}
             </NativeSelect>
           </div>
-          <Button type="submit" className="self-start" disabled={mutacion.isPending}>
-            <Send aria-hidden />
-            Publicar
-          </Button>
+          <div className="flex justify-end sm:col-span-3">
+            <Button type="submit" disabled={mutacion.isPending}>
+              <Send aria-hidden />
+              Publicar encuesta
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>
@@ -243,32 +250,29 @@ function EditorEncuesta({ id }: { id: string }) {
     onError: (error) => toast.error(apiErrorMessage(error)),
   });
 
-  if (isPending) {
-    return <Loader2 aria-label="Cargando" className="size-5 animate-spin text-muted-foreground" />;
-  }
-  if (isError) {
-    return <p className="text-sm text-destructive" role="alert">{apiErrorMessage(error)}</p>;
-  }
+  if (isPending) return <LoadingState />;
+  if (isError) return <ErrorState>{apiErrorMessage(error)}</ErrorState>;
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        back={{ href: "/admin/encuestas", label: "Encuestas" }}
+        title={
+          <span className="flex flex-wrap items-center gap-3">
             {survey.title}
-            <Badge variant={survey.status === "PUBLISHED" ? "default" : "outline"}>
-              {SURVEY_STATUS_LABELS[survey.status]}
-            </Badge>
-          </CardTitle>
-          <CardDescription>
+            <SurveyStatusBadge status={survey.status} />
+          </span>
+        }
+        description={
+          <>
             Periodo {survey.period}
             {survey.status !== "DRAFT" &&
               ` · ${formatDateTime(survey.opensAt)} al ${formatDateTime(survey.closesAt)} · ${audienceLabel(survey.targetCohort)}`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {survey.description && <p className="text-sm">{survey.description}</p>}
-          <div className="flex flex-wrap gap-2">
+            {survey.description && <span className="mt-1 block text-foreground/80">{survey.description}</span>}
+          </>
+        }
+        actions={
+          <>
             {survey.status !== "DRAFT" && (
               <Link href={`/admin/encuestas/${id}/resultados`} className={buttonVariants()}>
                 <BarChart3 aria-hidden />
@@ -293,9 +297,9 @@ function EditorEncuesta({ id }: { id: string }) {
                 Eliminar borrador
               </Button>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </>
+        }
+      />
 
       <Preguntas survey={survey} />
       {survey.status === "DRAFT" && <Publicar survey={survey} />}
@@ -306,16 +310,10 @@ function EditorEncuesta({ id }: { id: string }) {
 export default function EncuestaAdminPage() {
   const { id } = useParams<{ id: string }>();
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-8">
-      <header className="flex flex-col gap-2">
-        <Link href="/admin/encuestas" className={buttonVariants({ variant: "ghost", size: "sm", className: "self-start" })}>
-          <ArrowLeft aria-hidden />
-          Encuestas
-        </Link>
-      </header>
+    <div className="flex w-full max-w-4xl flex-col gap-6">
       <RequireRole roles={["ADMIN"]}>
         <EditorEncuesta id={id} />
       </RequireRole>
-    </main>
+    </div>
   );
 }

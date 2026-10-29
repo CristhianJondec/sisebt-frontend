@@ -12,3 +12,15 @@ export function tieneRol(
 ): boolean {
   return user != null && roles.includes(user.role);
 }
+
+export const ROLE_LABELS: Record<Role, string> = {
+  ADMIN: "Administrador",
+  GRADUATE: "Egresado",
+  COMPANY: "Empresa",
+};
+
+/** Iniciales para avatares: "ana.perez@x" -> "AP", "Ana Pérez" -> "AP". */
+export function iniciales(texto: string): string {
+  const partes = texto.split("@")[0]!.split(/[\s._-]+/).filter(Boolean);
+  return (partes.length > 1 ? partes[0]![0]! + partes[1]![0]! : texto.slice(0, 2)).toUpperCase();
+}

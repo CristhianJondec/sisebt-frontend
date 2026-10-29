@@ -1,7 +1,11 @@
 "use client";
 
+import { ShieldAlert } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect } from "react";
+import { EmptyState } from "@/components/states";
+import { buttonVariants } from "@/components/ui/button";
 import { type Role, tieneRol } from "@/lib/roles";
 import { useSession } from "@/lib/use-session";
 
@@ -26,9 +30,12 @@ export function RequireRole({ roles, children }: RequireRoleProps) {
 
   if (!tieneRol(user, roles)) {
     return (
-      <p className="text-sm text-destructive" role="alert">
-        No tienes permiso para ver esta página.
-      </p>
+      <EmptyState
+        icon={ShieldAlert}
+        title="Acceso restringido"
+        description="No tienes permiso para ver esta página."
+        action={<Link href="/" className={buttonVariants({ variant: "outline" })}>Volver al inicio</Link>}
+      />
     );
   }
 

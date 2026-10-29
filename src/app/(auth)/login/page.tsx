@@ -2,19 +2,13 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { LogIn } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login } from "@/lib/auth";
@@ -26,19 +20,20 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [verPassword, setVerPassword] = useState(false);
 
   const mutacion = useMutation({
     mutationFn: login,
     onSuccess: (sesion) => {
       setSession(sesion);
-      toast.success(`Sesion iniciada como ${sesion.user.email}`);
+      toast.success(`Sesión iniciada como ${sesion.user.email}`);
       // El egresado va directo a su perfil: si aun no lo tiene, debe completarlo.
       router.push(sesion.user.role === "GRADUATE" ? "/perfil" : "/");
     },
     onError: (error) => {
       const mensaje =
         error instanceof AxiosError && error.response?.status === 401
-          ? "Credenciales invalidas"
+          ? "Credenciales inválidas"
           : "No se pudo contactar la API";
       toast.error(mensaje);
     },
@@ -50,63 +45,80 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center p-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Iniciar sesion</CardTitle>
-          <CardDescription>Accede al panel de SISEBT</CardDescription>
-        </CardHeader>
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight">Iniciar sesión</h1>
+        <p className="text-sm text-muted-foreground">
+          Ingresa con tu correo institucional para acceder a SISEBT.
+        </p>
+      </div>
 
-        <CardContent>
-          <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Correo electronico</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(evento) => setEmail(evento.target.value)}
-                placeholder="egresado@sisebt.edu.mx"
-              />
-            </div>
+      <form onSubmit={enviar} className="flex flex-col gap-5" noValidate>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="email">Correo electrónico</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            className="h-10"
+            value={email}
+            onChange={(evento) => setEmail(evento.target.value)}
+            placeholder="egresado@unitru.edu.pe"
+          />
+        </div>
 
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Contrasena</Label>
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                >
-                  ¿Olvidaste tu contrasena?
-                </Link>
-              </div>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(evento) => setPassword(evento.target.value)}
-              />
-            </div>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Contraseña</Label>
+            <Link
+              href="/forgot-password"
+              className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
+          <div className="relative">
+            <Input
+              id="password"
+              name="password"
+              type={verPassword ? "text" : "password"}
+              autoComplete="current-password"
+              required
+              className="h-10 pr-10"
+              value={password}
+              onChange={(evento) => setPassword(evento.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setVerPassword((v) => !v)}
+              aria-label={verPassword ? "Ocultar" : "Mostrar"}
+              className="absolute top-1/2 right-2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {verPassword ? <EyeOff aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
+            </button>
+          </div>
+        </div>
 
-            {mutacion.isError && (
-              <p className="text-sm text-destructive" role="alert">
-                No se pudo iniciar sesion. Revisa tus credenciales.
-              </p>
-            )}
+        {mutacion.isError && (
+          <Alert variant="destructive">
+            <AlertDescription>No se pudo iniciar sesión. Revisa tus credenciales.</AlertDescription>
+          </Alert>
+        )}
 
-            <Button type="submit" disabled={mutacion.isPending}>
-              <LogIn aria-hidden />
-              {mutacion.isPending ? "Entrando..." : "Entrar"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </main>
+        <Button type="submit" size="lg" disabled={mutacion.isPending}>
+          {mutacion.isPending ? "Entrando..." : "Entrar"}
+          {!mutacion.isPending && <ArrowRight aria-hidden data-icon="inline-end" />}
+        </Button>
+      </form>
+
+      <p className="text-center text-sm text-muted-foreground">
+        ¿Aún no tienes cuenta?{" "}
+        <Link href="/registro" className="font-medium text-primary underline-offset-4 hover:underline">
+          Regístrate
+        </Link>
+      </p>
+    </div>
   );
 }

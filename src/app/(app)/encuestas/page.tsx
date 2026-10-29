@@ -1,12 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CircleCheck, Loader2 } from "lucide-react";
+import { ArrowRight, CalendarClock, CircleCheck, ClipboardList, ListChecks } from "lucide-react";
 import Link from "next/link";
+import { PageHeader } from "@/components/layout/page-header";
 import { RequireRole } from "@/components/require-role";
+import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiErrorMessage } from "@/lib/graduates";
 import { MY_SURVEYS_QUERY_KEY, fetchMySurveys, formatDateTime } from "@/lib/surveys";
 
@@ -16,45 +18,56 @@ function MisEncuestas() {
     queryFn: fetchMySurveys,
   });
 
-  if (isPending) {
-    return <Loader2 aria-label="Cargando" className="size-5 animate-spin text-muted-foreground" />;
-  }
-  if (isError) {
-    return <p className="text-sm text-destructive" role="alert">{apiErrorMessage(error)}</p>;
-  }
+  if (isPending) return <LoadingState />;
+  if (isError) return <ErrorState>{apiErrorMessage(error)}</ErrorState>;
   if (data.length === 0) {
-    return <p className="text-muted-foreground">No tienes encuestas vigentes por ahora.</p>;
+    return (
+      <EmptyState
+        icon={ClipboardList}
+        title="No tienes encuestas vigentes"
+        description="Te avisaremos cuando la escuela publique una nueva encuesta de seguimiento."
+      />
+    );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="grid gap-4 md:grid-cols-2">
       {data.map((s) => (
-        <Card key={s.id}>
+        <Card key={s.id} className="transition-shadow hover:shadow-md">
           <CardHeader>
-            <CardTitle className="flex flex-wrap items-center gap-2">
-              {s.title}
+            <div className="mb-1">
               {s.answered ? (
                 <Badge variant="secondary">
                   <CircleCheck aria-hidden />
                   Respondida
                 </Badge>
               ) : (
-                <Badge>Pendiente</Badge>
+                <Badge variant="soft">Pendiente</Badge>
               )}
-            </CardTitle>
-            <CardDescription>
-              Periodo {s.period} · Disponible hasta el {formatDateTime(s.closesAt)} ·{" "}
-              {s.questions.length} preguntas
-            </CardDescription>
+            </div>
+            <CardTitle>{s.title}</CardTitle>
+            {s.description && <CardDescription className="line-clamp-2">{s.description}</CardDescription>}
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {s.description && <p className="text-sm">{s.description}</p>}
-            {!s.answered && (
-              <Link href={`/encuestas/${s.id}`} className={buttonVariants({ className: "self-start" })}>
+          <CardContent className="mt-auto flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <CalendarClock aria-hidden className="size-3.5" />
+              Hasta el {formatDateTime(s.closesAt)}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <ListChecks aria-hidden className="size-3.5" />
+              {s.questions.length} preguntas · Periodo {s.period}
+            </span>
+          </CardContent>
+          <CardFooter className="justify-end">
+            {s.answered ? (
+              <span className="text-sm text-muted-foreground">¡Gracias por participar!</span>
+            ) : (
+              <Link href={`/encuestas/${s.id}`} className={buttonVariants({ size: "sm" })}>
                 Responder
+                <ArrowRight aria-hidden />
               </Link>
             )}
-          </CardContent>
+          </CardFooter>
         </Card>
       ))}
     </div>
@@ -63,17 +76,12 @@ function MisEncuestas() {
 
 export default function EncuestasPage() {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-8">
-      <header className="flex flex-col gap-2">
-        <Link href="/" className={buttonVariants({ variant: "ghost", size: "sm", className: "self-start" })}>
-          <ArrowLeft aria-hidden />
-          Inicio
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight">Mis encuestas</h1>
-      </header>
-      <RequireRole roles={["GRADUATE"]}>
-        <MisEncuestas />
-      </RequireRole>
-    </main>
+    <RequireRole roles={["GRADUATE"]}>
+      <PageHeader
+        title="Mis encuestas"
+        description="Encuestas de seguimiento dirigidas a tu promoción."
+      />
+      <MisEncuestas />
+    </RequireRole>
   );
 }

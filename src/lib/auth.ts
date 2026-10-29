@@ -11,10 +11,20 @@ export interface NuevaPassword {
   password: string;
 }
 
+export interface NuevaCuenta extends Credenciales {
+  role: "GRADUATE" | "COMPANY";
+}
+
 export const USERS_QUERY_KEY = ["users"] as const;
 
 export async function login(credenciales: Credenciales): Promise<Session> {
   const { data } = await apiClient.post<Session>("/auth/login", credenciales);
+  return data;
+}
+
+/** Registro publico (POST /users): solo egresados y empresas. */
+export async function register(cuenta: NuevaCuenta): Promise<SessionUser> {
+  const { data } = await apiClient.post<SessionUser>("/users", cuenta);
   return data;
 }
 

@@ -1,14 +1,16 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Send } from "lucide-react";
-import Link from "next/link";
+import { CircleCheck, Send } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { RequireRole } from "@/components/require-role";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState, ErrorState, LoadingState } from "@/components/states";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,7 +40,7 @@ function CampoPregunta({ question: q, values, error, onChange }: CampoProps) {
 
   return (
     <fieldset className="flex flex-col gap-3" aria-describedby={error ? idError : undefined}>
-      <legend className="mb-2 font-medium">
+      <legend className="mb-3 font-medium">
         {q.text} {q.required && <span className="text-destructive">*</span>}
       </legend>
 
@@ -50,7 +52,7 @@ function CampoPregunta({ question: q, values, error, onChange }: CampoProps) {
       {q.type === "SINGLE_CHOICE" && (
         <RadioGroup value={values[0] ?? ""} onValueChange={(v) => onChange([String(v)])}>
           {q.options.map((o) => (
-            <label key={o} className="flex items-center gap-2 text-sm">
+            <label key={o} className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm transition-colors hover:bg-muted/50 has-[[data-checked]]:border-primary has-[[data-checked]]:bg-primary/5">
               <RadioGroupItem value={o} aria-invalid={invalida} />
               {o}
             </label>
@@ -61,7 +63,7 @@ function CampoPregunta({ question: q, values, error, onChange }: CampoProps) {
       {q.type === "MULTIPLE_CHOICE" && (
         <div className="flex flex-col gap-2">
           {q.options.map((o) => (
-            <label key={o} className="flex items-center gap-2 text-sm">
+            <label key={o} className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm transition-colors hover:bg-muted/50 has-[[data-checked]]:border-primary has-[[data-checked]]:bg-primary/5">
               <Checkbox aria-invalid={invalida} checked={values.includes(o)}
                 onCheckedChange={(marcada) =>
                   onChange(marcada ? [...values, o] : values.filter((v) => v !== o))
@@ -74,14 +76,19 @@ function CampoPregunta({ question: q, values, error, onChange }: CampoProps) {
 
       {q.type === "SCALE" && (
         <RadioGroup value={values[0] ?? ""} onValueChange={(v) => onChange([String(v)])}
-          className="flex flex-wrap gap-4">
-          {SCALE_VALUES.map((v) => (
-            <label key={v} className="flex flex-col items-center gap-1 text-sm">
-              <RadioGroupItem value={v} aria-invalid={invalida} />
-              {v}
-            </label>
-          ))}
-          <span className="self-end text-xs text-muted-foreground">1 = Nada · 5 = Mucho</span>
+          className="flex flex-col gap-2">
+          <div className="grid grid-cols-5 gap-2 sm:max-w-md">
+            {SCALE_VALUES.map((v) => (
+              <label key={v} className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border bg-card py-3 text-sm font-medium transition-colors hover:bg-muted/50 has-[[data-checked]]:border-primary has-[[data-checked]]:bg-primary/5 has-[[data-checked]]:text-primary">
+                <RadioGroupItem value={v} aria-invalid={invalida} />
+                {v}
+              </label>
+            ))}
+          </div>
+          <span className="flex justify-between text-xs text-muted-foreground sm:max-w-md">
+            <span>1 = Nada</span>
+            <span>5 = Mucho</span>
+          </span>
         </RadioGroup>
       )}
 
@@ -127,6 +134,10 @@ function FormularioEncuesta({ survey }: { survey: GraduateSurvey }) {
     },
   });
 
+  const contestadas = survey.questions.filter((q) =>
+    (respuestas[q.id] ?? []).some((v) => v.trim()),
+  ).length;
+
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     const encontrados = validar(survey, respuestas);
@@ -149,10 +160,19 @@ function FormularioEncuesta({ survey }: { survey: GraduateSurvey }) {
 
   return (
     <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
+      <div className="sticky top-14 z-10 -mx-1 flex items-center gap-4 rounded-xl border bg-card/90 px-4 py-3 shadow-xs backdrop-blur">
+        <span className="shrink-0 text-sm font-medium tabular-nums">
+          {contestadas} de {survey.questions.length}
+        </span>
+        <Progress className="flex-1" value={(contestadas / Math.max(survey.questions.length, 1)) * 100}
+          aria-label="Progreso de la encuesta" />
+      </div>
       {survey.questions.map((q, i) => (
-        <Card key={q.id}>
-          <CardContent className="flex gap-2">
-            <span className="text-sm text-muted-foreground tabular-nums">{i + 1}.</span>
+        <Card key={q.id} className={errores[q.id] ? "border-destructive/40" : undefined}>
+          <CardContent className="flex gap-4">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary tabular-nums">
+              {i + 1}
+            </span>
             <div className="flex-1">
               <CampoPregunta question={q} values={respuestas[q.id] ?? []} error={errores[q.id]}
                 onChange={(values) => cambiar(q.id, values)} />
@@ -160,7 +180,7 @@ function FormularioEncuesta({ survey }: { survey: GraduateSurvey }) {
           </CardContent>
         </Card>
       ))}
-      <Button type="submit" className="self-start" disabled={mutacion.isPending}>
+      <Button type="submit" size="lg" className="self-end" disabled={mutacion.isPending}>
         <Send aria-hidden />
         Enviar respuestas
       </Button>
@@ -174,28 +194,23 @@ function ResponderEncuesta({ id }: { id: string }) {
     queryFn: () => fetchMySurvey(id),
   });
 
-  if (isPending) {
-    return <Loader2 aria-label="Cargando" className="size-5 animate-spin text-muted-foreground" />;
-  }
-  if (isError) {
-    return <p className="text-sm text-destructive" role="alert">{apiErrorMessage(error)}</p>;
-  }
+  if (isPending) return <LoadingState />;
+  if (isError) return <ErrorState>{apiErrorMessage(error)}</ErrorState>;
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>{data.title}</CardTitle>
-          <CardDescription>Periodo {data.period}</CardDescription>
-        </CardHeader>
-        {data.description && (
-          <CardContent>
-            <p className="text-sm">{data.description}</p>
-          </CardContent>
-        )}
-      </Card>
+      <PageHeader
+        back={{ href: "/encuestas", label: "Mis encuestas" }}
+        title={data.title}
+        description={
+          <>
+            Periodo {data.period}
+            {data.description && <span className="mt-1 block text-foreground/80">{data.description}</span>}
+          </>
+        }
+      />
       {data.answered ? (
-        <p className="text-muted-foreground">Ya respondiste esta encuesta. ¡Gracias!</p>
+        <EmptyState icon={CircleCheck} title="Ya respondiste esta encuesta" description="¡Gracias por tu participación!" />
       ) : (
         <FormularioEncuesta survey={data} />
       )}
@@ -206,16 +221,10 @@ function ResponderEncuesta({ id }: { id: string }) {
 export default function ResponderEncuestaPage() {
   const { id } = useParams<{ id: string }>();
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-8">
-      <header className="flex flex-col gap-2">
-        <Link href="/encuestas" className={buttonVariants({ variant: "ghost", size: "sm", className: "self-start" })}>
-          <ArrowLeft aria-hidden />
-          Mis encuestas
-        </Link>
-      </header>
+    <div className="flex w-full max-w-3xl flex-col gap-6">
       <RequireRole roles={["GRADUATE"]}>
         <ResponderEncuesta id={id} />
       </RequireRole>
-    </main>
+    </div>
   );
 }

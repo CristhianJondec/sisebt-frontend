@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save } from "lucide-react";
+import { Save, ShieldCheck } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -99,9 +99,12 @@ export function ProfileForm({ profile, onDone }: ProfileFormProps) {
   return (
     <form onSubmit={enviar} className="flex flex-col gap-6">
       {!profile && (
-        <Card>
+        <Card className="border-primary/25 bg-primary/[0.03]">
           <CardHeader>
-            <CardTitle>Consentimiento de tratamiento de datos</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck aria-hidden className="size-4 text-primary" />
+              Consentimiento de tratamiento de datos
+            </CardTitle>
             <CardDescription>
               Conforme a la Ley N° 29733, Ley de Protección de Datos Personales, autorizas a la
               universidad a tratar tus datos personales, académicos y laborales con fines de
@@ -121,10 +124,11 @@ export function ProfileForm({ profile, onDone }: ProfileFormProps) {
       )}
 
       <Card>
-        <CardHeader>
+        <CardHeader className="border-b">
           <CardTitle>Datos personales</CardTitle>
+          <CardDescription>Información de contacto e identificación.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="grid gap-5 sm:grid-cols-2">
           <Campo id="firstName" label="Nombres *">
             <Input id="firstName" required maxLength={100} value={datos.firstName}
               onChange={(e) => set("firstName", e.target.value)} />
@@ -154,10 +158,11 @@ export function ProfileForm({ profile, onDone }: ProfileFormProps) {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="border-b">
           <CardTitle>Datos académicos</CardTitle>
+          <CardDescription>Tu formación en la escuela profesional.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="grid gap-5 sm:grid-cols-2">
           <Campo id="studentCode" label="Código de estudiante *">
             <Input id="studentCode" required pattern="[A-Za-z0-9\-]{4,20}"
               title="4 a 20 caracteres alfanuméricos" value={datos.studentCode}
@@ -187,16 +192,16 @@ export function ProfileForm({ profile, onDone }: ProfileFormProps) {
         </CardContent>
       </Card>
 
-      <div className="flex gap-2">
-        <Button type="submit" disabled={mutacion.isPending || !datos.dataConsent}>
-          <Save aria-hidden />
-          {mutacion.isPending ? "Guardando..." : "Guardar perfil"}
-        </Button>
+      <div className="flex justify-end gap-2">
         {profile && onDone && (
           <Button type="button" variant="outline" onClick={onDone}>
             Cancelar
           </Button>
         )}
+        <Button type="submit" disabled={mutacion.isPending || !datos.dataConsent}>
+          <Save aria-hidden />
+          {mutacion.isPending ? "Guardando..." : "Guardar perfil"}
+        </Button>
       </div>
     </form>
   );

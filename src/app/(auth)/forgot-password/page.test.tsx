@@ -2,14 +2,14 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { describe, expect, it } from "vitest";
-import ForgotPasswordPage from "@/app/forgot-password/page";
+import ForgotPasswordPage from "@/app/(auth)/forgot-password/page";
 import { API_BASE } from "@/test/msw/handlers";
 import { server } from "@/test/msw/server";
 import { renderWithProviders } from "@/test/render-with-providers";
 
 async function solicitar(email: string) {
   const usuario = userEvent.setup();
-  await usuario.type(screen.getByLabelText(/correo electronico/i), email);
+  await usuario.type(screen.getByLabelText(/correo electrónico/i), email);
   await usuario.click(screen.getByRole("button", { name: /enviar enlace/i }));
 }
 
@@ -27,7 +27,7 @@ describe("ForgotPasswordPage", () => {
     await solicitar("egresado@sisebt.edu.mx");
 
     expect(await screen.findByText(/revisa tu correo/i)).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent(/si egresado@sisebt.edu.mx esta registrado/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/si egresado@sisebt.edu.mx está registrado/i);
     expect(recibido).toEqual({ email: "egresado@sisebt.edu.mx" });
     // El formulario desaparece: no se puede reenviar en bucle desde aqui.
     expect(screen.queryByRole("button", { name: /enviar enlace/i })).not.toBeInTheDocument();
@@ -43,14 +43,14 @@ describe("ForgotPasswordPage", () => {
     renderWithProviders(<ForgotPasswordPage />);
     await solicitar("no-es-email");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/correo electronico valido/i);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/correo electrónico válido/i);
     expect(screen.queryByText(/revisa tu correo/i)).not.toBeInTheDocument();
   });
 
   it("ofrece volver al login", () => {
     renderWithProviders(<ForgotPasswordPage />);
 
-    expect(screen.getByRole("link", { name: /volver a iniciar sesion/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /volver a iniciar sesión/i })).toHaveAttribute(
       "href",
       "/login",
     );

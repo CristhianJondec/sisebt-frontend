@@ -1,15 +1,8 @@
 import type { Metadata } from "next";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Nueva contrasena · SISEBT",
+  title: "Nueva contraseña · SISEBT",
   // La URL lleva el token: que no viaje en el Referer de ningun recurso externo.
   referrer: "no-referrer",
 };
@@ -24,19 +17,14 @@ export default async function ResetPasswordPage({
   const { token } = await searchParams;
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center p-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Nueva contrasena</CardTitle>
-          <CardDescription>
-            Define una nueva contrasena para tu cuenta de SISEBT.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <ResetPasswordForm token={typeof token === "string" && token ? token : null} />
-        </CardContent>
-      </Card>
-    </main>
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight">Nueva contraseña</h1>
+        <p className="text-sm text-muted-foreground">
+          Define una nueva contraseña para tu cuenta de SISEBT.
+        </p>
+      </div>
+      <ResetPasswordForm token={typeof token === "string" && token ? token : null} />
+    </div>
   );
 }

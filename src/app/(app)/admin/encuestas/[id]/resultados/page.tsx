@@ -1,27 +1,21 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Download, MessageSquareText, Smile, Target, Users } from "lucide-react";
 import { useParams } from "next/navigation";
+import { BarList, StatCard } from "@/components/dashboard/charts";
+import { PageHeader } from "@/components/layout/page-header";
 import { RequireRole } from "@/components/require-role";
+import { ErrorState, LoadingState } from "@/components/states";
+import { SurveyStatusBadge } from "@/components/status-badges";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { apiErrorMessage } from "@/lib/graduates";
 import {
   QUESTION_TYPE_LABELS,
   type QuestionSummary,
-  SURVEY_STATUS_LABELS,
   audienceLabel,
   fetchSurveyResults,
 } from "@/lib/surveys";
@@ -29,11 +23,14 @@ import {
 function ResumenPregunta({ q, indice }: { q: QuestionSummary; indice: number }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">
-          {indice + 1}. {q.text}
+      <CardHeader className="border-b">
+        <CardTitle className="flex gap-3">
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary tabular-nums">
+            {indice + 1}
+          </span>
+          {q.text}
         </CardTitle>
-        <CardDescription className="flex flex-wrap items-center gap-2">
+        <CardDescription className="flex flex-wrap items-center gap-2 pl-9">
           <Badge variant="secondary">{QUESTION_TYPE_LABELS[q.type]}</Badge>
           {q.answered} respuesta{q.answered === 1 ? "" : "s"}
           {q.average !== null && (
@@ -46,35 +43,20 @@ function ResumenPregunta({ q, indice }: { q: QuestionSummary; indice: number }) 
           q.texts.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin respuestas.</p>
           ) : (
-            <ul className="flex max-h-64 flex-col gap-2 overflow-y-auto text-sm">
+            <ul className="flex max-h-72 flex-col gap-2 overflow-y-auto text-sm">
               {q.texts.map((t, i) => (
-                <li key={i} className="rounded-md bg-muted p-2">{t}</li>
+                <li key={i} className="flex gap-3 rounded-lg border bg-muted/30 p-3">
+                  <MessageSquareText aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  {t}
+                </li>
               ))}
             </ul>
           )
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Opción</TableHead>
-                <TableHead className="w-1/2" />
-                <TableHead className="text-right">Conteo</TableHead>
-                <TableHead className="text-right">%</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {q.options.map((o) => (
-                <TableRow key={o.option}>
-                  <TableCell>{o.option}</TableCell>
-                  <TableCell>
-                    <Progress value={o.percentage} aria-label={`${o.option}: ${o.percentage}%`} />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">{o.count}</TableCell>
-                  <TableCell className="text-right tabular-nums">{o.percentage}%</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <BarList
+            className="max-w-2xl"
+            items={q.options.map((o) => ({ label: o.option, value: o.count, percentage: o.percentage }))}
+          />
         )}
       </CardContent>
     </Card>
@@ -87,36 +69,43 @@ function Resultados({ id }: { id: string }) {
     queryFn: () => fetchSurveyResults(id),
   });
 
-  if (isPending) {
-    return <Loader2 aria-label="Cargando" className="size-5 animate-spin text-muted-foreground" />;
-  }
-  if (isError) {
-    return <p className="text-sm text-destructive" role="alert">{apiErrorMessage(error)}</p>;
-  }
+  if (isPending) return <LoadingState />;
+  if (isError) return <ErrorState>{apiErrorMessage(error)}</ErrorState>;
+
+  const satisfaccion = data.questions.find((q) => q.isSatisfaction)?.average ?? null;
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex flex-wrap items-center gap-2">
-            {data.survey.title}
-            <Badge variant="outline">{SURVEY_STATUS_LABELS[data.survey.status]}</Badge>
-          </CardTitle>
-          <CardDescription>
-            Periodo {data.survey.period} · {audienceLabel(data.survey.targetCohort)}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          <p className="text-sm">
-            Tasa de respuesta:{" "}
-            <span className="text-2xl font-semibold tabular-nums">{data.responseRate}%</span>{" "}
-            <span className="text-muted-foreground">
-              ({data.responses} de {data.eligible} egresados)
-            </span>
-          </p>
-          <Progress value={Math.min(data.responseRate, 100)} aria-label="Tasa de respuesta" />
-        </CardContent>
-      </Card>
+      <PageHeader
+        back={{ href: `/admin/encuestas/${id}`, label: "Encuesta" }}
+        title="Resultados"
+        description={
+          <span className="flex flex-wrap items-center gap-2">
+            {data.survey.title} · Periodo {data.survey.period} · {audienceLabel(data.survey.targetCohort)}
+            <SurveyStatusBadge status={data.survey.status} />
+          </span>
+        }
+        actions={
+          <Button variant="outline" disabled title="Disponible próximamente">
+            <Download aria-hidden />
+            Exportar
+          </Button>
+        }
+      />
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Card>
+          <CardContent className="flex flex-col gap-3">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Tasa de respuesta</p>
+            <p className="text-3xl font-semibold tracking-tight tabular-nums">{data.responseRate}%</p>
+            <Progress value={Math.min(data.responseRate, 100)} aria-label="Tasa de respuesta" />
+          </CardContent>
+        </Card>
+        <StatCard label="Respuestas" icon={Users} value={data.responses} hint="Egresados que respondieron" />
+        <StatCard label="Elegibles" icon={Target} value={data.eligible} hint="Público objetivo" />
+        <StatCard label="Satisfacción" icon={Smile}
+          value={satisfaccion !== null ? satisfaccion.toFixed(2) : "—"} hint="Promedio sobre 5" />
+      </section>
 
       {data.questions.map((q, i) => (
         <ResumenPregunta key={q.questionId} q={q} indice={i} />
@@ -128,17 +117,8 @@ function Resultados({ id }: { id: string }) {
 export default function ResultadosPage() {
   const { id } = useParams<{ id: string }>();
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-8">
-      <header className="flex flex-col gap-2">
-        <Link href={`/admin/encuestas/${id}`} className={buttonVariants({ variant: "ghost", size: "sm", className: "self-start" })}>
-          <ArrowLeft aria-hidden />
-          Encuesta
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight">Resultados</h1>
-      </header>
-      <RequireRole roles={["ADMIN"]}>
-        <Resultados id={id} />
-      </RequireRole>
-    </main>
+    <RequireRole roles={["ADMIN"]}>
+      <Resultados id={id} />
+    </RequireRole>
   );
 }

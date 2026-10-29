@@ -1,12 +1,12 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Briefcase, Pencil, Plus, Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,7 +90,7 @@ function ExperienceForm({ experience, onClose }: ExperienceFormProps) {
   }
 
   return (
-    <form onSubmit={enviar} className="grid gap-4 rounded-lg border p-4 sm:grid-cols-2">
+    <form onSubmit={enviar} className="grid gap-4 rounded-xl border bg-muted/30 p-5 sm:grid-cols-2">
       <div className="flex flex-col gap-2">
         <Label htmlFor="company">Empresa *</Label>
         <Input id="company" required maxLength={150} value={datos.company}
@@ -143,12 +143,12 @@ function ExperienceForm({ experience, onClose }: ExperienceFormProps) {
         </Label>
       </div>
 
-      <div className="flex gap-2 sm:col-span-2">
-        <Button type="submit" disabled={mutacion.isPending}>
-          {mutacion.isPending ? "Guardando..." : "Guardar experiencia"}
-        </Button>
+      <div className="flex justify-end gap-2 sm:col-span-2">
         <Button type="button" variant="outline" onClick={onClose}>
           Cancelar
+        </Button>
+        <Button type="submit" disabled={mutacion.isPending}>
+          {mutacion.isPending ? "Guardando..." : "Guardar experiencia"}
         </Button>
       </div>
     </form>
@@ -177,38 +177,48 @@ export function ExperienceSection({ experiences, editable = false }: ExperienceS
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="border-b">
         <CardTitle>Experiencia laboral</CardTitle>
+        <CardDescription>Trayectoria profesional desde el egreso.</CardDescription>
         {editable && editando === undefined && (
-          <Button size="sm" onClick={() => setEditando(null)}>
-            <Plus aria-hidden />
-            Agregar
-          </Button>
+          <CardAction>
+            <Button size="sm" onClick={() => setEditando(null)}>
+              <Plus aria-hidden />
+              Agregar
+            </Button>
+          </CardAction>
         )}
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {editando === null && <ExperienceForm experience={null} onClose={() => setEditando(undefined)} />}
 
         {experiences.length === 0 && editando === undefined && (
-          <p className="text-sm text-muted-foreground">Sin experiencias registradas.</p>
+          <div className="flex flex-col items-center gap-2 py-8 text-center">
+            <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Briefcase aria-hidden className="size-4.5" />
+            </span>
+            <p className="text-sm text-muted-foreground">Sin experiencias registradas.</p>
+          </div>
         )}
 
         {experiences.map((exp) =>
           editando?.id === exp.id ? (
             <ExperienceForm key={exp.id} experience={exp} onClose={() => setEditando(undefined)} />
           ) : (
-            <div key={exp.id} className="flex items-start justify-between gap-4 rounded-lg border p-4">
-              <div className="flex flex-col gap-1">
-                <p className="font-medium">
-                  {exp.position} · {exp.company}
-                </p>
+            <div key={exp.id} className="flex items-start gap-4 rounded-xl border p-4 transition-colors hover:bg-muted/30">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Briefcase aria-hidden className="size-4.5" />
+              </span>
+              <div className="flex flex-1 flex-col gap-1">
+                <p className="font-medium">{exp.position}</p>
+                <p className="text-sm">{exp.company}</p>
                 <p className="text-sm text-muted-foreground">
                   {exp.sector} · {formatDate(exp.startDate)} –{" "}
                   {exp.isCurrent ? "Actualidad" : formatDate(exp.endDate)}
                   {exp.salaryRange && ` · ${SALARY_RANGE_LABELS[exp.salaryRange]}`}
                 </p>
-                <div className="flex flex-wrap gap-1">
-                  {exp.isCurrent && <Badge>Actual</Badge>}
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {exp.isCurrent && <Badge variant="soft">Actual</Badge>}
                   {exp.isFirstJob && <Badge variant="secondary">Primer empleo</Badge>}
                   {exp.isSelfEmployed && <Badge variant="outline">Independiente</Badge>}
                 </div>

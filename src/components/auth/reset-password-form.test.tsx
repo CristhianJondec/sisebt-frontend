@@ -13,9 +13,9 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 async function rellenarYEnviar(password: string, confirmacion = password) {
   const usuario = userEvent.setup();
-  await usuario.type(screen.getByLabelText(/nueva contrasena/i), password);
-  await usuario.type(screen.getByLabelText(/confirmar contrasena/i), confirmacion);
-  await usuario.click(screen.getByRole("button", { name: /guardar contrasena/i }));
+  await usuario.type(screen.getByLabelText(/nueva contraseña/i), password);
+  await usuario.type(screen.getByLabelText(/confirmar contraseña/i), confirmacion);
+  await usuario.click(screen.getByRole("button", { name: /guardar contraseña/i }));
 }
 
 beforeEach(() => push.mockClear());
@@ -24,7 +24,7 @@ describe("ResetPasswordForm", () => {
   it("sin token muestra el aviso de enlace no valido", () => {
     renderWithProviders(<ResetPasswordForm token={null} />);
 
-    expect(screen.getByRole("alert")).toHaveTextContent(/enlace no valido/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/enlace no válido/i);
     expect(screen.getByRole("link", { name: /solicita uno nuevo/i })).toHaveAttribute(
       "href",
       "/forgot-password",
@@ -81,7 +81,7 @@ describe("ResetPasswordForm", () => {
     renderWithProviders(<ResetPasswordForm token="token-usado" />);
     await rellenarYEnviar("contrasena-nueva");
 
-    expect(await screen.findByText(/enlace no valido/i)).toBeInTheDocument();
+    expect(await screen.findByText(/enlace no válido/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /solicita uno nuevo/i })).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });

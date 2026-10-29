@@ -61,7 +61,7 @@ export function QuestionForm({ surveyId, question, onClose }: QuestionFormProps)
   }
 
   return (
-    <form onSubmit={enviar} className="grid gap-4 rounded-lg border p-4 sm:grid-cols-2">
+    <form onSubmit={enviar} className="grid gap-4 rounded-xl border border-primary/25 bg-muted/30 p-5 sm:grid-cols-2">
       <div className="flex flex-col gap-2 sm:col-span-2">
         <Label htmlFor="q-text">Enunciado *</Label>
         <Input id="q-text" required maxLength={500} value={text}
@@ -87,9 +87,9 @@ export function QuestionForm({ surveyId, question, onClose }: QuestionFormProps)
             onChange={(e) => setOptions(e.target.value)} />
         </div>
       )}
-      <div className="flex gap-2 sm:col-span-2">
-        <Button type="submit" disabled={mutacion.isPending}>Guardar</Button>
+      <div className="flex justify-end gap-2 sm:col-span-2">
         <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+        <Button type="submit" disabled={mutacion.isPending}>Guardar pregunta</Button>
       </div>
     </form>
   );

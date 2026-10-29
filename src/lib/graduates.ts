@@ -15,6 +15,21 @@ export const DEGREE_LABELS: Record<Degree, string> = {
   TITLED: "Titulado",
 };
 
+/**
+ * Sugerencias del campo "Programa". Copia de PROGRAMAS del backend
+ * (src/graduates/programs.ts), que además normaliza tildes y mayúsculas al guardar.
+ */
+export const PROGRAMAS = [
+  "Ingeniería Civil",
+  "Ingeniería de Materiales",
+  "Ingeniería de Minas",
+  "Ingeniería de Sistemas",
+  "Ingeniería Industrial",
+  "Ingeniería Mecánica",
+  "Ingeniería Mecatrónica",
+  "Ingeniería Metalúrgica",
+] as const;
+
 /** Debe coincidir con el enum SalaryRange del backend (lista fija). */
 export const SALARY_RANGE_LABELS: Record<SalaryRange, string> = {
   UNDER_1000: "Menos de S/ 1,000",

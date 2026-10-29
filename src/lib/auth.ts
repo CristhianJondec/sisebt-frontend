@@ -15,6 +15,16 @@ export interface NuevaCuenta extends Credenciales {
   role: "GRADUATE" | "COMPANY";
 }
 
+/** Cuenta tal como la lista Admin > Usuarios. */
+export interface UserAccount extends SessionUser {
+  active: boolean;
+}
+
+export interface CambiosUsuario {
+  role?: SessionUser["role"];
+  active?: boolean;
+}
+
 export const USERS_QUERY_KEY = ["users"] as const;
 
 export async function login(credenciales: Credenciales): Promise<Session> {
@@ -42,7 +52,16 @@ export async function resetPassword(datos: NuevaPassword): Promise<void> {
 }
 
 /** Ruta protegida: el interceptor adjunta el bearer token automaticamente. */
-export async function fetchUsers(): Promise<SessionUser[]> {
-  const { data } = await apiClient.get<SessionUser[]>("/users");
+export async function fetchUsers(): Promise<UserAccount[]> {
+  const { data } = await apiClient.get<UserAccount[]>("/users");
+  return data;
+}
+
+/**
+ * Cambio de rol o (des)activacion. El backend responde 403 si el admin intenta
+ * modificarse a si mismo; la UI ya bloquea esa fila, pero la regla vive alla.
+ */
+export async function updateUser(id: string, cambios: CambiosUsuario): Promise<UserAccount> {
+  const { data } = await apiClient.patch<UserAccount>(`/users/${id}`, cambios);
   return data;
 }

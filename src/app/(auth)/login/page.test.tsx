@@ -11,6 +11,8 @@ import { renderWithProviders } from "@/test/render-with-providers";
 // next/navigation no funciona fuera del runtime de Next; mockeamos el router.
 const push = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+const toastError = vi.hoisted(() => vi.fn());
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: toastError } }));
 
 async function rellenarYEnviar(password = "contrasena-segura") {
   const usuario = userEvent.setup();
@@ -62,6 +64,25 @@ describe("LoginPage", () => {
     await rellenarYEnviar("contrasena-equivocada");
 
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(useAuthStore.getState().token).toBeNull();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("avisa que la cuenta esta desactivada cuando la API responde 403", async () => {
+    push.mockClear();
+    server.use(
+      http.post(`${API_BASE}/auth/login`, () =>
+        HttpResponse.json({ message: "Tu cuenta esta desactivada" }, { status: 403 }),
+      ),
+    );
+
+    renderWithProviders(<LoginPage />);
+
+    await rellenarYEnviar();
+
+    await waitFor(() =>
+      expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/cuenta está desactivada/)),
+    );
     expect(useAuthStore.getState().token).toBeNull();
     expect(push).not.toHaveBeenCalled();
   });

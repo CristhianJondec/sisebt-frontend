@@ -22,6 +22,7 @@ import {
   type GraduateProfile,
   MY_PROFILE_QUERY_KEY,
   type ProfileInput,
+  PROGRAMAS,
   apiErrorMessage,
   saveMyProfile,
   toDateInput,
@@ -169,8 +170,11 @@ export function ProfileForm({ profile, onDone }: ProfileFormProps) {
               onChange={(e) => set("studentCode", e.target.value)} />
           </Campo>
           <Campo id="program" label="Programa / Escuela *">
-            <Input id="program" required maxLength={150} value={datos.program}
-              onChange={(e) => set("program", e.target.value)} />
+            <Input id="program" required maxLength={150} list="programas" value={datos.program}
+              placeholder="Ingeniería de Sistemas" onChange={(e) => set("program", e.target.value)} />
+            <datalist id="programas">
+              {PROGRAMAS.map((p) => <option key={p} value={p} />)}
+            </datalist>
           </Campo>
           <Campo id="admissionYear" label="Año de ingreso *">
             <Input id="admissionYear" type="number" required min={1950} max={2100}

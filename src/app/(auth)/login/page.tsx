@@ -31,10 +31,14 @@ export default function LoginPage() {
       router.push(sesion.user.role === "GRADUATE" ? "/perfil" : "/");
     },
     onError: (error) => {
+      const status = error instanceof AxiosError ? error.response?.status : undefined;
+      // 403: credenciales correctas pero el admin desactivó la cuenta.
       const mensaje =
-        error instanceof AxiosError && error.response?.status === 401
+        status === 401
           ? "Credenciales inválidas"
-          : "No se pudo contactar la API";
+          : status === 403
+            ? "Tu cuenta está desactivada. Comunícate con la oficina de egresados."
+            : "No se pudo contactar la API";
       toast.error(mensaje);
     },
   });

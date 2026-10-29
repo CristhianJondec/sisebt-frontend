@@ -1,26 +1,28 @@
 import { expect, test } from "@playwright/test";
+import { CUENTAS, iniciarSesion, toast } from "./helpers";
 
-test("la home renderiza el badge de estado del backend", async ({ page }) => {
+test("sin sesión, la home redirige al formulario de login", async ({ page }) => {
   await page.goto("/");
-
-  await expect(page.getByRole("heading", { name: "SISEBT" })).toBeVisible();
-
-  // El smoke test no exige que la API este arriba: valida que el badge se
-  // renderiza y resuelve a uno de sus tres estados.
-  const badge = page.getByTestId("backend-status");
-  await expect(badge).toBeVisible();
-  await expect(badge).toHaveText(/^Backend Status: (Online|Offline|Comprobando\.\.\.)$/);
-});
-
-test("sin sesion, la home ofrece iniciar sesion y el enlace lleva al formulario", async ({
-  page,
-}) => {
-  await page.goto("/");
-
-  await page.getByRole("link", { name: /iniciar sesion/i }).click();
 
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByLabel(/correo electronico/i)).toBeVisible();
-  await expect(page.getByLabel(/contrasena/i)).toBeVisible();
-  await expect(page.getByRole("button", { name: /entrar/i })).toBeEnabled();
+  await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
+  await expect(page.getByLabel("Correo electrónico")).toBeVisible();
+  await expect(page.getByLabel("Contraseña", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Entrar" })).toBeEnabled();
+});
+
+test("con credenciales inválidas avisa y se queda en el login", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("Correo electrónico").fill(CUENTAS.admin);
+  await page.getByLabel("Contraseña", { exact: true }).fill("contrasena-equivocada");
+  await page.getByRole("button", { name: "Entrar" }).click();
+
+  await expect(toast(page, "Credenciales inválidas")).toBeVisible();
+  await expect(page).toHaveURL(/\/login$/);
+});
+
+test("el admin entra al dashboard y ve el estado del backend", async ({ page }) => {
+  await iniciarSesion(page, CUENTAS.admin);
+
+  await expect(page.getByTestId("backend-status")).toHaveText("API en línea");
 });

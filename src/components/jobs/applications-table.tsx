@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Mail } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { ApplicationBadge } from "@/components/status-badges";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -26,14 +27,17 @@ import {
 
 /**
  * Postulaciones con cambio de estado: cada cambio notifica al egresado.
- * El admin ve la empresa; la empresa no.
+ * El admin ve la empresa; la empresa no. El nombre lleva al perfil del
+ * egresado: ficha completa (admin) o perfil publico (empresa).
  */
 export function ApplicationsTable({
   applications,
   showCompany = true,
+  linkProfiles = true,
 }: {
   applications: Application[];
   showCompany?: boolean;
+  linkProfiles?: boolean;
 }) {
   const queryClient = useQueryClient();
   const cambiar = useMutation({
@@ -73,7 +77,16 @@ export function ApplicationsTable({
                     {initials(nombre)}
                   </span>
                   <span className="flex flex-col">
-                    <span className="font-medium">{nombre}</span>
+                    {linkProfiles ? (
+                      <Link
+                        href={showCompany ? `/admin/egresados/${a.graduate.id}` : `/empresa/postulantes/${a.graduate.id}`}
+                        className="font-medium hover:text-primary hover:underline"
+                      >
+                        {nombre}
+                      </Link>
+                    ) : (
+                      <span className="font-medium">{nombre}</span>
+                    )}
                     <a href={`mailto:${a.graduate.email}`} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary">
                       <Mail aria-hidden className="size-3" />
                       {a.graduate.email}

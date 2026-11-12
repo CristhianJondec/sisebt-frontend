@@ -27,15 +27,18 @@ import {
   saveMyProfile,
   toDateInput,
 } from "@/lib/graduates";
+import type { CvDraft } from "@/lib/ai";
 
 interface ProfileFormProps {
   /** Perfil existente (edición) o null (primer registro). */
   profile: GraduateProfile | null;
   onDone?: () => void;
+  /** Datos leídos del CV con IA: rellenan el formulario, el egresado revisa y guarda. */
+  draft?: CvDraft["profile"];
 }
 
-function inicial(profile: GraduateProfile | null): ProfileInput {
-  return {
+function inicial(profile: GraduateProfile | null, draft?: CvDraft["profile"]): ProfileInput {
+  const base: ProfileInput = {
     // Si ya existe perfil, el consentimiento ya se aceptó antes.
     dataConsent: profile?.dataConsent ?? false,
     firstName: profile?.firstName ?? "",
@@ -50,6 +53,7 @@ function inicial(profile: GraduateProfile | null): ProfileInput {
     graduationDate: toDateInput(profile?.graduationDate),
     degree: profile?.degree ?? "BACHELOR",
   };
+  return draft ? { ...base, ...draft } : base;
 }
 
 /** Los opcionales vacíos no se envían: el backend validaría "" como formato inválido. */
@@ -71,9 +75,9 @@ function Campo({ id, label, children }: { id: string; label: string; children: R
   );
 }
 
-export function ProfileForm({ profile, onDone }: ProfileFormProps) {
+export function ProfileForm({ profile, onDone, draft }: ProfileFormProps) {
   const queryClient = useQueryClient();
-  const [datos, setDatos] = useState<ProfileInput>(() => inicial(profile));
+  const [datos, setDatos] = useState<ProfileInput>(() => inicial(profile, draft));
 
   const set = <K extends keyof ProfileInput>(campo: K, valor: ProfileInput[K]) =>
     setDatos((previo) => ({ ...previo, [campo]: valor }));

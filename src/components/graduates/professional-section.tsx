@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Award,
   BookOpen,
@@ -9,10 +10,12 @@ import {
   Globe,
   Languages,
   Link2,
+  Loader2,
   Pencil,
+  Trash2,
   Upload,
 } from "lucide-react";
-import { type FormEvent, type ReactNode, useRef, useState } from "react";
+import { type ChangeEvent, type FormEvent, type ReactNode, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,14 +25,25 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  CV_PDF_MAX_MB,
+  type CvSource,
+  type GraduateProfile,
+  MY_PROFILE_QUERY_KEY,
+  type PublicGraduateProfile,
+  apiErrorMessage,
+  deleteCvPdf,
+  openCv,
+  saveProfessional,
+  uploadCvPdf,
+} from "@/lib/graduates";
+import {
   AVAILABILITY_LABELS,
   type Availability,
-  EXTRAS_VACIOS,
   type ProfileExtras,
-  useProfileExtras,
+  aProfessionalInput,
+  extrasDesdePerfil,
+  lista,
 } from "@/lib/profile-extras";
-
-const lista = (texto: string) => texto.split(",").map((t) => t.trim()).filter(Boolean);
 const conProtocolo = (url: string) => (/^https?:\/\//.test(url) ? url : `https://${url}`);
 
 function Enlace({ icon: Icon, label, valor, href }: { icon: typeof Globe; label: string; valor: string; href?: string }) {
@@ -63,13 +77,13 @@ function Campo({ id, label, children, className }: { id: string; label: string; 
   );
 }
 
-function Formulario({ inicial, onSave, onCancel }: {
+function Formulario({ inicial, pending, onSave, onCancel }: {
   inicial: ProfileExtras;
+  pending: boolean;
   onSave: (datos: ProfileExtras) => void;
   onCancel: () => void;
 }) {
   const [datos, setDatos] = useState(inicial);
-  const cv = useRef<HTMLInputElement>(null);
   const set = <K extends keyof ProfileExtras>(campo: K, valor: ProfileExtras[K]) =>
     setDatos((d) => ({ ...d, [campo]: valor }));
 
@@ -127,32 +141,96 @@ function Formulario({ inicial, onSave, onCancel }: {
         <Input id="x-certs" placeholder="AWS Cloud Practitioner, Scrum Master" value={datos.certifications}
           onChange={(e) => set("certifications", e.target.value)} />
       </Campo>
-      <div className="flex flex-col gap-2 sm:col-span-2">
-        <Label>Currículum (PDF)</Label>
-        <div className="flex items-center gap-3 rounded-lg border border-dashed p-3">
-          <FileText aria-hidden className="size-5 text-muted-foreground" />
-          <span className="flex-1 truncate text-sm text-muted-foreground">{datos.cvName || "Ningún archivo seleccionado"}</span>
-          <Button type="button" size="sm" variant="outline" onClick={() => cv.current?.click()}>
-            <Upload aria-hidden />
-            Subir CV
-          </Button>
-          <input ref={cv} type="file" accept="application/pdf" className="sr-only"
-            onChange={(e) => set("cvName", e.target.files?.[0]?.name ?? datos.cvName)} />
-        </div>
-      </div>
       <div className="flex justify-end gap-2 sm:col-span-2">
         <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit">Guardar</Button>
+        <Button type="submit" disabled={pending}>Guardar</Button>
       </div>
     </form>
   );
 }
 
+/** CV en PDF guardado en la base: el egresado lo sube; admin y empresa lo abren. */
+function Curriculum({ cvName, source, editable }: { cvName: string | null; source: CvSource; editable: boolean }) {
+  const queryClient = useQueryClient();
+  const input = useRef<HTMLInputElement>(null);
+  const subir = useMutation({
+    mutationFn: uploadCvPdf,
+    onSuccess: (perfil) => {
+      queryClient.setQueryData(MY_PROFILE_QUERY_KEY, perfil);
+      toast.success("CV guardado");
+    },
+    onError: (error) => toast.error(apiErrorMessage(error, "No se pudo subir el CV")),
+  });
+  const quitar = useMutation({
+    mutationFn: deleteCvPdf,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: MY_PROFILE_QUERY_KEY });
+      toast.success("CV eliminado");
+    },
+    onError: (error) => toast.error(apiErrorMessage(error)),
+  });
+  const abrir = useMutation({
+    mutationFn: () => openCv(source),
+    onError: (error) => toast.error(apiErrorMessage(error, "No se pudo abrir el CV")),
+  });
+
+  function elegir(evento: ChangeEvent<HTMLInputElement>) {
+    const archivo = evento.target.files?.[0];
+    evento.target.value = "";
+    if (!archivo) return;
+    if (archivo.type !== "application/pdf") return void toast.error("El CV debe ser un PDF");
+    if (archivo.size > CV_PDF_MAX_MB * 1024 * 1024) return void toast.error(`El CV no puede superar ${CV_PDF_MAX_MB} MB`);
+    subir.mutate(archivo);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/30 p-3">
+      <FileText aria-hidden className="size-5 text-primary" />
+      <span className="min-w-0 flex-1 truncate text-sm">{cvName || "Currículum no adjuntado"}</span>
+      {cvName && (
+        <Button size="sm" variant="ghost" disabled={abrir.isPending} onClick={() => abrir.mutate()}>
+          {abrir.isPending && <Loader2 aria-hidden className="animate-spin" />}
+          Ver CV
+        </Button>
+      )}
+      {editable && (
+        <>
+          <Button size="sm" variant="outline" disabled={subir.isPending} onClick={() => input.current?.click()}>
+            {subir.isPending ? <Loader2 aria-hidden className="animate-spin" /> : <Upload aria-hidden />}
+            {cvName ? "Reemplazar" : "Subir CV"}
+          </Button>
+          {cvName && (
+            <Button size="icon-sm" variant="ghost" aria-label="Eliminar CV" disabled={quitar.isPending}
+              onClick={() => { if (confirm("¿Eliminar tu CV?")) quitar.mutate(); }}>
+              <Trash2 aria-hidden />
+            </Button>
+          )}
+          <input ref={input} type="file" accept="application/pdf" className="sr-only" onChange={elegir} />
+        </>
+      )}
+    </div>
+  );
+}
+
 /** Perfil profesional: redes, publicaciones, habilidades y CV. */
-export function ProfessionalSection({ profileId, editable = false }: { profileId: string; editable?: boolean }) {
-  const extras = useProfileExtras((s) => s.extras[profileId]) ?? EXTRAS_VACIOS;
-  const setExtras = useProfileExtras((s) => s.setExtras);
+export function ProfessionalSection({ profile, cvSource, editable = false }: {
+  profile: GraduateProfile | PublicGraduateProfile;
+  /** Ruta de descarga del CV según quién mira el perfil. */
+  cvSource: CvSource;
+  editable?: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const extras = extrasDesdePerfil(profile);
   const [editando, setEditando] = useState(false);
+  const guardar = useMutation({
+    mutationFn: (datos: ProfileExtras) => saveProfessional(aProfessionalInput(datos)),
+    onSuccess: (perfil) => {
+      queryClient.setQueryData(MY_PROFILE_QUERY_KEY, perfil);
+      toast.success("Perfil profesional actualizado");
+      setEditando(false);
+    },
+    onError: (error) => toast.error(apiErrorMessage(error)),
+  });
 
   const habilidades = lista(extras.skills);
   const certificaciones = lista(extras.certifications);
@@ -176,12 +254,9 @@ export function ProfessionalSection({ profileId, editable = false }: { profileId
         {editando ? (
           <Formulario
             inicial={extras}
+            pending={guardar.isPending}
             onCancel={() => setEditando(false)}
-            onSave={(datos) => {
-              setExtras(profileId, datos);
-              toast.success("Perfil profesional actualizado");
-              setEditando(false);
-            }}
+            onSave={(datos) => guardar.mutate(datos)}
           />
         ) : (
           <div className="flex flex-col gap-6">
@@ -247,15 +322,7 @@ export function ProfessionalSection({ profileId, editable = false }: { profileId
               </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
-              <FileText aria-hidden className="size-5 text-primary" />
-              <span className="flex-1 truncate text-sm">{extras.cvName || "Currículum no adjuntado"}</span>
-              {extras.cvName && (
-                <Button size="sm" variant="ghost" onClick={() => toast.info("Descarga disponible próximamente")}>
-                  Ver CV
-                </Button>
-              )}
-            </div>
+            <Curriculum cvName={profile.cvName} source={cvSource} editable={editable} />
           </div>
         )}
       </CardContent>

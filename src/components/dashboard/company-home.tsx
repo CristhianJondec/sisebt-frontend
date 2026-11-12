@@ -77,7 +77,10 @@ export function CompanyHome() {
                         {initials(nombre)}
                       </span>
                       <div className="flex min-w-0 flex-1 flex-col">
-                        <span className="truncate text-sm font-medium">{nombre}</span>
+                        <Link href={`/empresa/postulantes/${a.graduate.id}`}
+                          className="truncate text-sm font-medium hover:text-primary hover:underline">
+                          {nombre}
+                        </Link>
                         <span className="truncate text-xs text-muted-foreground">{a.offer.title} · {formatShortDate(a.createdAt)}</span>
                       </div>
                       <ApplicationBadge status={a.status} />

@@ -9,6 +9,7 @@ export type SalaryRange =
   | "FROM_3500_TO_5000"
   | "OVER_5000";
 export type EmploymentStatus = "EMPLOYED" | "UNEMPLOYED" | "INDEPENDENT";
+export type JobAvailability = "SEEKING" | "OPEN" | "UNAVAILABLE";
 
 export const DEGREE_LABELS: Record<Degree, string> = {
   BACHELOR: "Bachiller",
@@ -74,10 +75,32 @@ export interface GraduateProfile {
   admissionYear: number;
   graduationDate: string;
   degree: Degree;
+  // Perfil profesional
+  headline: string | null;
+  summary: string | null;
+  linkedin: string | null;
+  orcid: string | null;
+  github: string | null;
+  website: string | null;
+  languages: string | null;
+  skills: string[];
+  certifications: string[];
+  dois: string[];
+  availability: JobAvailability | null;
+  /** Data URL; llega null en el listado de egresados (solo viaja en el detalle). */
+  photo: string | null;
+  cvName: string | null;
+  cvUploadedAt: string | null;
   experiences: Experience[];
   employmentStatus: EmploymentStatus;
   insertionMonths: number | null;
 }
+
+/** Perfil que ve una empresa de sus postulantes: sin datos sensibles (Ley 29733). */
+export type PublicGraduateProfile = Omit<
+  GraduateProfile,
+  "dni" | "birthDate" | "studentCode" | "dataConsent" | "dataConsentAt"
+>;
 
 export interface ProfileInput {
   dataConsent: boolean;
@@ -92,6 +115,20 @@ export interface ProfileInput {
   admissionYear: number;
   graduationDate: string;
   degree: Degree;
+}
+
+export interface ProfessionalInput {
+  headline?: string;
+  summary?: string;
+  linkedin?: string;
+  orcid?: string;
+  github?: string;
+  website?: string;
+  languages?: string;
+  skills: string[];
+  certifications: string[];
+  dois: string[];
+  availability: JobAvailability | null;
 }
 
 export type ExperienceInput = Omit<Experience, "id" | "salaryRange" | "endDate"> & {
@@ -123,6 +160,57 @@ export async function saveMyProfile(input: ProfileInput): Promise<GraduateProfil
   return data;
 }
 
+export async function saveProfessional(input: ProfessionalInput): Promise<GraduateProfile> {
+  const { data } = await apiClient.put<GraduateProfile>("/graduates/me/professional", input);
+  return data;
+}
+
+/** `null` elimina la foto. */
+export async function savePhoto(photo: string | null): Promise<GraduateProfile> {
+  const { data } = await apiClient.put<GraduateProfile>("/graduates/me/photo", { photo });
+  return data;
+}
+
+export const CV_PDF_MAX_MB = 5;
+
+export async function uploadCvPdf(file: File): Promise<GraduateProfile> {
+  const form = new FormData();
+  form.append("file", file);
+  // Sin Content-Type: el navegador pone multipart con su boundary.
+  const { data } = await apiClient.put<GraduateProfile>("/graduates/me/cv", form, {
+    headers: { "Content-Type": undefined },
+    timeout: 60_000,
+  });
+  return data;
+}
+
+export async function deleteCvPdf(): Promise<void> {
+  await apiClient.delete("/graduates/me/cv");
+}
+
+/** De dónde se descarga el CV según quién lo mira. */
+export type CvSource = "me" | { admin: string } | { company: string };
+
+function rutaCv(source: CvSource): string {
+  if (source === "me") return "/graduates/me/cv";
+  return "admin" in source ? `/graduates/${source.admin}/cv` : `/graduates/${source.company}/public/cv`;
+}
+
+/** El endpoint exige el bearer: se baja como blob y se abre en otra pestaña. */
+export async function openCv(source: CvSource): Promise<void> {
+  const ventana = window.open("", "_blank");
+  try {
+    const { data } = await apiClient.get<Blob>(rutaCv(source), { responseType: "blob", timeout: 60_000 });
+    const url = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+    if (ventana) ventana.location.href = url;
+    else window.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (error) {
+    ventana?.close();
+    throw error;
+  }
+}
+
 export async function addExperience(input: ExperienceInput): Promise<Experience> {
   const { data } = await apiClient.post<Experience>("/graduates/me/experiences", input);
   return data;
@@ -144,6 +232,12 @@ export async function fetchGraduates(filters: GraduateFilters): Promise<Graduate
 
 export async function fetchGraduate(id: string): Promise<GraduateProfile> {
   const { data } = await apiClient.get<GraduateProfile>(`/graduates/${id}`);
+  return data;
+}
+
+/** Solo responde si el egresado postuló a alguna oferta de la empresa. */
+export async function fetchPublicGraduate(id: string): Promise<PublicGraduateProfile> {
+  const { data } = await apiClient.get<PublicGraduateProfile>(`/graduates/${id}/public`);
   return data;
 }
 

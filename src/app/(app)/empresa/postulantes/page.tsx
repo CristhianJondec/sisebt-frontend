@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { RankPanel } from "@/components/ai/rank-panel";
 import { ApplicationsTable } from "@/components/jobs/applications-table";
 import { PageHeader } from "@/components/layout/page-header";
 import { RequireRole } from "@/components/require-role";
@@ -30,6 +31,7 @@ function Postulantes() {
           {ofertas.map(([id, titulo]) => <NativeSelectOption key={id} value={id}>{titulo}</NativeSelectOption>)}
         </NativeSelect>
       </div>
+      <RankPanel offerId={oferta || null} applications={lista} />
       <ApplicationsTable applications={lista} showCompany={false} />
     </Card>
   );

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Download, MessageSquareText, Smile, Target, Users } from "lucide-react";
 import { useParams } from "next/navigation";
+import { SurveySummaryCard } from "@/components/ai/survey-summary";
 import { BarList, StatCard } from "@/components/dashboard/charts";
 import { PageHeader } from "@/components/layout/page-header";
 import { RequireRole } from "@/components/require-role";
@@ -106,6 +107,8 @@ function Resultados({ id }: { id: string }) {
         <StatCard label="Satisfacción" icon={Smile}
           value={satisfaccion !== null ? satisfaccion.toFixed(2) : "—"} hint="Promedio sobre 5" />
       </section>
+
+      <SurveySummaryCard surveyId={id} responses={data.responses} />
 
       {data.questions.map((q, i) => (
         <ResumenPregunta key={q.questionId} q={q} indice={i} />

@@ -2,7 +2,7 @@ import { ProfileAvatar } from "@/components/graduates/profile-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmploymentBadge } from "@/components/status-badges";
-import { DEGREE_LABELS, type GraduateProfile, formatDate } from "@/lib/graduates";
+import { DEGREE_LABELS, type GraduateProfile, type PublicGraduateProfile, formatDate } from "@/lib/graduates";
 
 function Dato({ label, valor }: { label: string; valor: string | number | null | undefined }) {
   return (
@@ -19,8 +19,18 @@ export function formatInsertion(meses: number | null): string {
   return `${meses} ${meses === 1 ? "mes" : "meses"}`;
 }
 
-/** Vista de solo lectura del perfil (sin experiencias), común a egresado y admin. */
-export function ProfileView({ profile, editable = false }: { profile: GraduateProfile; editable?: boolean }) {
+/**
+ * Vista de solo lectura del perfil (sin experiencias), común a egresado y admin.
+ * Con un perfil público (empresa) se omiten los datos sensibles.
+ */
+export function ProfileView({
+  profile,
+  editable = false,
+}: {
+  profile: GraduateProfile | PublicGraduateProfile;
+  editable?: boolean;
+}) {
+  const completo = "dni" in profile ? profile : null;
   const iniciales = `${profile.firstName[0] ?? ""}${profile.lastName[0] ?? ""}`.toUpperCase();
 
   return (
@@ -28,7 +38,7 @@ export function ProfileView({ profile, editable = false }: { profile: GraduatePr
       <Card>
         <CardContent className="flex flex-col gap-6 md:flex-row md:items-center">
           <div className="flex flex-1 items-center gap-4">
-            <ProfileAvatar profileId={profile.id} initials={iniciales} editable={editable} />
+            <ProfileAvatar photo={profile.photo} initials={iniciales} editable={editable} />
             <div className="flex min-w-0 flex-col gap-1.5">
               <h2 className="truncate text-lg font-semibold tracking-tight">
                 {profile.firstName} {profile.lastName}
@@ -64,12 +74,14 @@ export function ProfileView({ profile, editable = false }: { profile: GraduatePr
             <dl className="grid gap-5 sm:grid-cols-2">
               <Dato label="Nombres" valor={profile.firstName} />
               <Dato label="Apellidos" valor={profile.lastName} />
-              <Dato label="DNI" valor={profile.dni} />
+              {completo && <Dato label="DNI" valor={completo.dni} />}
               <Dato label="Correo" valor={profile.email} />
               <Dato label="Teléfono" valor={profile.phone} />
-              <Dato label="Fecha de nacimiento" valor={formatDate(profile.birthDate)} />
+              {completo && <Dato label="Fecha de nacimiento" valor={formatDate(completo.birthDate)} />}
               <Dato label="Ciudad" valor={profile.city} />
-              <Dato label="Consentimiento de datos" valor={`Aceptado el ${formatDate(profile.dataConsentAt)}`} />
+              {completo && (
+                <Dato label="Consentimiento de datos" valor={`Aceptado el ${formatDate(completo.dataConsentAt)}`} />
+              )}
             </dl>
           </CardContent>
         </Card>
@@ -80,7 +92,7 @@ export function ProfileView({ profile, editable = false }: { profile: GraduatePr
           </CardHeader>
           <CardContent>
             <dl className="grid gap-5 sm:grid-cols-2">
-              <Dato label="Código de estudiante" valor={profile.studentCode} />
+              {completo && <Dato label="Código de estudiante" valor={completo.studentCode} />}
               <Dato label="Programa" valor={profile.program} />
               <Dato label="Año de ingreso" valor={profile.admissionYear} />
               <Dato label="Fecha de egreso" valor={formatDate(profile.graduationDate)} />

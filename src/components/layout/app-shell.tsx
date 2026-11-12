@@ -49,6 +49,7 @@ const NAVEGACION: Record<Role, NavSection[]> = {
       items: [
         { href: "/admin/egresados", label: "Egresados", icon: GraduationCap },
         { href: "/admin/encuestas", label: "Encuestas", icon: ClipboardList },
+        { href: "/admin/eventos", label: "Eventos", icon: CalendarDays },
       ],
     },
     {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, LockOpen, Pencil } from "lucide-react";
+import { Lock, LockOpen, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,14 +30,16 @@ interface OffersTableProps {
   /** Si se pasan, se muestran las acciones de editar y abrir/cerrar. */
   onEdit?: (offer: Offer) => void;
   onToggle?: (offer: Offer) => void;
+  /** Solo se ofrece en ofertas sin postulantes; con postulantes se cierran. */
+  onDelete?: (offer: Offer) => void;
 }
 
 /** Tabla de ofertas para el admin (con empresa) y para la empresa (sin ella). */
-export function OffersTable({ offers, showCompany = true, onEdit, onToggle }: OffersTableProps) {
+export function OffersTable({ offers, showCompany = true, onEdit, onToggle, onDelete }: OffersTableProps) {
   if (offers.length === 0) {
     return <p className="p-10 text-center text-sm text-muted-foreground">No hay ofertas para mostrar.</p>;
   }
-  const acciones = Boolean(onEdit || onToggle);
+  const acciones = Boolean(onEdit || onToggle || onDelete);
 
   return (
     <Table>
@@ -87,6 +89,18 @@ export function OffersTable({ offers, showCompany = true, onEdit, onToggle }: Of
                       onClick={() => onToggle(o)}
                     >
                       {o.status === "OPEN" ? <Lock aria-hidden /> : <LockOpen aria-hidden />}
+                    </Button>
+                  )}
+                  {onDelete && (
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      disabled={o.applicationCount > 0}
+                      aria-label="Eliminar oferta"
+                      title={o.applicationCount > 0 ? "Tiene postulantes: ciérrala en lugar de eliminarla" : "Eliminar oferta"}
+                      onClick={() => onDelete(o)}
+                    >
+                      <Trash2 aria-hidden />
                     </Button>
                   )}
                 </div>

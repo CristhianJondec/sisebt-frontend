@@ -18,6 +18,7 @@ import {
   type OfferInput,
   QK,
   createOffer,
+  deleteOffer,
   fetchMyOffers,
   setOfferStatus,
   updateOffer,
@@ -47,6 +48,15 @@ function OfertasEmpresa() {
     mutationFn: (o: Offer) => setOfferStatus(o.id, o.status === "OPEN" ? "CLOSED" : "OPEN"),
     onSuccess: (o) => {
       toast.success(o.status === "OPEN" ? `${o.title} está abierta` : `${o.title} fue cerrada`);
+      void refrescar();
+    },
+    onError: (error) => toast.error(apiErrorMessage(error)),
+  });
+
+  const eliminar = useMutation({
+    mutationFn: (o: Offer) => deleteOffer(o.id),
+    onSuccess: (_, o) => {
+      toast.success(`Oferta eliminada: ${o.title}`);
       void refrescar();
     },
     onError: (error) => toast.error(apiErrorMessage(error)),
@@ -89,6 +99,9 @@ function OfertasEmpresa() {
             showCompany={false}
             onEdit={aprobada ? (o) => setEditando(o) : undefined}
             onToggle={(o) => alternar.mutate(o)}
+            onDelete={(o) => {
+              if (confirm(`¿Eliminar la oferta "${o.title}"? Esta acción no se puede deshacer.`)) eliminar.mutate(o);
+            }}
           />
         </Card>
       )}

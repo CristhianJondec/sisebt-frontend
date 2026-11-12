@@ -22,7 +22,7 @@ function DetalleEgresado({ id }: { id: string }) {
   return (
     <>
       <ProfileView profile={data} />
-      <ProfessionalSection profileId={data.id} />
+      <ProfessionalSection profile={data} cvSource={{ admin: data.id }} />
       <ExperienceSection experiences={data.experiences} />
     </>
   );

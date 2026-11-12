@@ -36,9 +36,10 @@ export default defineConfig({
   webServer: [
     {
       // migrate deploy crea la base si no existe; reset-db.sql la vacia y la
-      // semilla deja las cuentas demo. db:seed compila, asi que dist/main existe.
+      // semilla deja las cuentas demo. Se compila en dist-e2e/ (no en dist/):
+      // `nest build` borra su carpeta de salida y tumbaria la API de la demo.
       command:
-        "pnpm prisma migrate deploy && pnpm prisma db execute --stdin < ../sisebt-frontend/e2e/reset-db.sql && pnpm db:seed && pnpm start:prod",
+        "pnpm prisma migrate deploy && pnpm prisma db execute --stdin < ../sisebt-frontend/e2e/reset-db.sql && pnpm exec nest build -p tsconfig.e2e-build.json && node dist-e2e/database/seed.js && node dist-e2e/main.js",
       cwd: "../sisebt-backend",
       url: `${API_URL}/health`,
       env: {

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BriefcaseBusiness, CalendarClock, Check, MapPin, Search, Wallet } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { toast } from "sonner";
+import { MatchButton } from "@/components/ai/match-button";
 import { PageHeader } from "@/components/layout/page-header";
 import { RequireRole } from "@/components/require-role";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
@@ -146,7 +147,10 @@ function Ofertas() {
                 </div>
               </CardContent>
               <CardFooter className="justify-between gap-2">
-                <Button size="sm" variant="ghost" onClick={() => setDetalle(o)}>Ver detalle</Button>
+                <div className="flex flex-wrap gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => setDetalle(o)}>Ver detalle</Button>
+                  <MatchButton offer={o} />
+                </div>
                 {o.applied ? (
                   <Button size="sm" variant="secondary" disabled>
                     <Check aria-hidden />

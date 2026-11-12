@@ -1,12 +1,14 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
+import { OfferWriter } from "@/components/ai/offer-writer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import type { OfferDraft } from "@/lib/ai";
 import { SALARY_RANGE_LABELS, type SalaryRange } from "@/lib/graduates";
 import {
   AREAS,
@@ -49,6 +51,11 @@ export function OfferForm({ offer, pending, onSubmit, onCancel }: OfferFormProps
   const set = (campo: keyof typeof v) => (e: { target: { value: string } }) =>
     setV((previo) => ({ ...previo, [campo]: e.target.value }));
 
+  /** La fecha límite la decide la empresa: la IA no la toca. */
+  function aplicarBorrador(d: OfferDraft) {
+    setV((previo) => ({ ...previo, ...d, salaryRange: d.salaryRange ?? previo.salaryRange }));
+  }
+
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     onSubmit({
@@ -66,6 +73,8 @@ export function OfferForm({ offer, pending, onSubmit, onCancel }: OfferFormProps
       </CardHeader>
       <CardContent>
         <form onSubmit={enviar} className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <OfferWriter onDraft={aplicarBorrador}
+            hasContent={Boolean(v.title.trim() || v.description.trim() || v.requirements.trim())} />
           <div className="flex flex-col gap-2 sm:col-span-2 lg:col-span-3">
             <Label htmlFor="o-title">Título del puesto *</Label>
             <Input id="o-title" required maxLength={150} placeholder="Desarrollador Backend Jr." value={v.title} onChange={set("title")} />

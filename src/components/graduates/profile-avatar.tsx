@@ -1,15 +1,18 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Camera, ImageUp, Trash2 } from "lucide-react";
 import { type ChangeEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { recortarImagen, useProfileExtras } from "@/lib/profile-extras";
+import { MY_PROFILE_QUERY_KEY, apiErrorMessage, savePhoto } from "@/lib/graduates";
+import { recortarImagen } from "@/lib/profile-extras";
 import { cn } from "@/lib/utils";
 
 interface ProfileAvatarProps {
-  profileId: string;
+  /** Data URL guardada en la base, o null. */
+  photo: string | null;
   initials: string;
   editable?: boolean;
   className?: string;
@@ -17,7 +20,7 @@ interface ProfileAvatarProps {
 
 function Imagen({ src, initials, className }: { src?: string | null; initials: string; className?: string }) {
   return src ? (
-    // eslint-disable-next-line @next/next/no-img-element -- data URL local, no pasa por next/image
+    // eslint-disable-next-line @next/next/no-img-element -- data URL de la API, no pasa por next/image
     <img src={src} alt="Foto de perfil" className={cn("rounded-full object-cover", className)} />
   ) : (
     <span className={cn("flex items-center justify-center rounded-full bg-primary/10 font-semibold text-primary", className)}>
@@ -27,9 +30,8 @@ function Imagen({ src, initials, className }: { src?: string | null; initials: s
 }
 
 /** Foto de perfil; si es editable, abre un modal para cambiarla. */
-export function ProfileAvatar({ profileId, initials, editable = false, className }: ProfileAvatarProps) {
-  const foto = useProfileExtras((s) => s.photos[profileId]);
-  const setPhoto = useProfileExtras((s) => s.setPhoto);
+export function ProfileAvatar({ photo: foto, initials, editable = false, className }: ProfileAvatarProps) {
+  const queryClient = useQueryClient();
   const [abierto, setAbierto] = useState(false);
   const [borrador, setBorrador] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -48,15 +50,15 @@ export function ProfileAvatar({ profileId, initials, editable = false, className
     setBorrador(await recortarImagen(archivo));
   }
 
-  function guardar() {
-    try {
-      setPhoto(profileId, borrador);
+  const guardar = useMutation({
+    mutationFn: () => savePhoto(borrador),
+    onSuccess: (perfil) => {
+      queryClient.setQueryData(MY_PROFILE_QUERY_KEY, perfil);
       toast.success(borrador ? "Foto de perfil actualizada" : "Foto de perfil eliminada");
       setAbierto(false);
-    } catch {
-      toast.error("No se pudo guardar la imagen");
-    }
-  }
+    },
+    onError: (error) => toast.error(apiErrorMessage(error, "No se pudo guardar la imagen")),
+  });
 
   const avatar = <Imagen src={foto} initials={initials} className={cn("size-16 text-xl ring-4 ring-primary/5", className)} />;
 
@@ -80,7 +82,9 @@ export function ProfileAvatar({ profileId, initials, editable = false, className
         footer={
           <>
             <Button variant="outline" onClick={() => setAbierto(false)}>Cancelar</Button>
-            <Button onClick={guardar} disabled={borrador === (foto ?? null)}>Guardar foto</Button>
+            <Button onClick={() => guardar.mutate()} disabled={guardar.isPending || borrador === (foto ?? null)}>
+              Guardar foto
+            </Button>
           </>
         }
       >

@@ -207,6 +207,10 @@ export async function updateOffer(id: string, input: OfferInput): Promise<Offer>
   return data;
 }
 
+export async function deleteOffer(id: string): Promise<void> {
+  await apiClient.delete(`/offers/${id}`);
+}
+
 export async function setOfferStatus(id: string, status: OfferStatus): Promise<Offer> {
   const { data } = await apiClient.patch<Offer>(`/offers/${id}/status`, { status });
   return data;
@@ -267,6 +271,24 @@ export async function registerToEvent(id: string): Promise<void> {
 
 export async function unregisterFromEvent(id: string): Promise<void> {
   await apiClient.delete(`/events/${id}/register`);
+}
+
+export interface EventInput {
+  title: string;
+  type: string;
+  description?: string;
+  /** ISO con zona horaria. */
+  date: string;
+  place: string;
+  seats: number;
+}
+
+export async function createEvent(input: EventInput): Promise<void> {
+  await apiClient.post("/events", input);
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+  await apiClient.delete(`/events/${id}`);
 }
 
 // ------------------------------------------------------------- formatos

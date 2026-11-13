@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, GraduationCap, Power, PowerOff, ShieldCheck, UsersRound } from "lucide-react";
+import { Building2, Copy, GraduationCap, KeyRound, Power, PowerOff, ShieldCheck, UsersRound } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { StatCard } from "@/components/dashboard/charts";
 import { PageHeader } from "@/components/layout/page-header";
@@ -10,6 +11,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Modal } from "@/components/ui/modal";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   Table,
@@ -19,7 +21,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { type CambiosUsuario, USERS_QUERY_KEY, type UserAccount, fetchUsers, updateUser } from "@/lib/auth";
+import {
+  type CambiosUsuario,
+  USERS_QUERY_KEY,
+  type UserAccount,
+  fetchUsers,
+  resetUserPassword,
+  updateUser,
+} from "@/lib/auth";
 import { apiErrorMessage } from "@/lib/graduates";
 import { ROLE_LABELS, type Role, iniciales } from "@/lib/roles";
 import { formatDateTime } from "@/lib/surveys";
@@ -45,6 +54,33 @@ function Usuarios() {
     onError: (error) => toast.error(apiErrorMessage(error)),
   });
 
+  // La temporal solo existe en esta respuesta: se muestra una vez y no se guarda.
+  const [temporal, setTemporal] = useState<{ email: string; password: string } | null>(null);
+  const restablecer = useMutation({
+    mutationFn: (u: UserAccount) => resetUserPassword(u.id),
+    onSuccess: (password, u) => {
+      setTemporal({ email: u.email, password });
+      void queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY });
+    },
+    onError: (error) => toast.error(apiErrorMessage(error)),
+  });
+
+  function restablecerPassword(u: UserAccount) {
+    if (confirm(`¿Restablecer la contraseña de ${u.email}? Se generará una temporal que deberá cambiar al entrar.`)) {
+      restablecer.mutate(u);
+    }
+  }
+
+  async function copiarTemporal() {
+    if (!temporal) return;
+    try {
+      await navigator.clipboard.writeText(temporal.password);
+      toast.success("Contraseña copiada");
+    } catch {
+      toast.error("No se pudo copiar: selecciónala y cópiala manualmente");
+    }
+  }
+
   function cambiarRol(u: UserAccount, role: Role) {
     // El usuario afectado debe volver a iniciar sesión (su token deja de valer).
     if (confirm(`¿Cambiar el rol de ${u.email} a ${ROLE_LABELS[role]}? Deberá iniciar sesión de nuevo.`)) {
@@ -65,7 +101,7 @@ function Usuarios() {
     <>
       <PageHeader
         title="Usuarios"
-        description="Cuentas registradas en la plataforma: cambia su rol o desactiva el acceso."
+        description="Cuentas registradas en la plataforma: cambia su rol, restablece la contraseña o desactiva el acceso."
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -91,14 +127,16 @@ function Usuarios() {
                 <TableHead className="w-44">Rol</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Fecha de registro</TableHead>
-                <TableHead className="w-36 text-right">Acceso</TableHead>
+                <TableHead className="w-72 text-right">Acceso</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.map((u) => {
                 // El admin no puede quitarse el rol ni desactivarse (el backend también lo impide).
                 const esYo = u.id === yo?.id;
-                const ocupada = actualizar.isPending && actualizar.variables?.u.id === u.id;
+                const ocupada =
+                  (actualizar.isPending && actualizar.variables?.u.id === u.id) ||
+                  (restablecer.isPending && restablecer.variables?.id === u.id);
                 return (
                   <TableRow key={u.id} className={u.active ? undefined : "text-muted-foreground"}>
                     <TableCell className="pl-4">
@@ -126,17 +164,28 @@ function Usuarios() {
                       </NativeSelect>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={u.active ? "soft" : "outline"}>{u.active ? "Activa" : "Desactivada"}</Badge>
+                      <span className="flex flex-wrap gap-1.5">
+                        <Badge variant={u.active ? "soft" : "outline"}>{u.active ? "Activa" : "Desactivada"}</Badge>
+                        {u.mustChangePassword && <Badge variant="outline">Clave temporal</Badge>}
+                      </span>
                     </TableCell>
                     <TableCell className="tabular-nums">{formatDateTime(u.createdAt)}</TableCell>
                     <TableCell className="text-right">
                       {!esYo && (
+                        <span className="inline-flex gap-2">
+                        <Button size="sm" variant="outline" disabled={ocupada}
+                          aria-label={`Restablecer contraseña de ${u.email}`}
+                          onClick={() => restablecerPassword(u)}>
+                          <KeyRound aria-hidden />
+                          Restablecer clave
+                        </Button>
                         <Button size="sm" variant={u.active ? "outline" : "default"} disabled={ocupada}
                           aria-label={`${u.active ? "Desactivar" : "Reactivar"} ${u.email}`}
                           onClick={() => alternarEstado(u)}>
                           {u.active ? <PowerOff aria-hidden /> : <Power aria-hidden />}
                           {u.active ? "Desactivar" : "Reactivar"}
                         </Button>
+                        </span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -146,6 +195,28 @@ function Usuarios() {
           </Table>
         </Card>
       )}
+
+      <Modal
+        open={temporal !== null}
+        onClose={() => setTemporal(null)}
+        title="Contraseña temporal generada"
+        description={temporal ? `Entrégala a ${temporal.email}. Se muestra solo esta vez.` : undefined}
+        footer={<Button onClick={() => setTemporal(null)}>Listo</Button>}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <code className="flex-1 rounded-lg border bg-muted/50 px-4 py-3 text-center font-mono text-lg tracking-wider select-all">
+              {temporal?.password}
+            </code>
+            <Button variant="outline" size="icon" aria-label="Copiar contraseña" onClick={copiarTemporal}>
+              <Copy aria-hidden />
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Al iniciar sesión con ella, el sistema le pedirá elegir una contraseña nueva.
+          </p>
+        </div>
+      </Modal>
     </>
   );
 }

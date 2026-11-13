@@ -3,71 +3,78 @@
 import { useMutation } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { KeyRound } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { resetPassword } from "@/lib/auth";
+import { changePassword } from "@/lib/auth";
+import { type SessionUser, useAuthStore } from "@/lib/auth-store";
 import { PASSWORD_MIN_LENGTH, validarPassword } from "@/lib/password-rules";
 
-interface ResetPasswordFormProps {
-  /** null si el enlace llego sin token. */
-  token: string | null;
+interface ChangePasswordFormProps {
+  onSuccess?: (user: SessionUser) => void;
 }
 
-function EnlaceInvalido() {
-  return (
-    <Alert variant="destructive">
-      <AlertTitle>Enlace no válido</AlertTitle>
-      <AlertDescription>
-        El enlace de recuperación no es válido, ya se usó o ha expirado.{" "}
-        <Link href="/forgot-password">Solicita uno nuevo</Link>.
-      </AlertDescription>
-    </Alert>
-  );
-}
+/** Cambio de contraseña dentro de la plataforma: pide la actual (o la temporal). */
+export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
+  const setUser = useAuthStore((estado) => estado.setUser);
 
-export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
-  const router = useRouter();
-
+  const [actual, setActual] = useState("");
   const [password, setPassword] = useState("");
   const [confirmacion, setConfirmacion] = useState("");
   const [errorLocal, setErrorLocal] = useState<string | null>(null);
 
   const mutacion = useMutation({
-    mutationFn: resetPassword,
-    onSuccess: () => {
-      toast.success("Contraseña actualizada. Ya puedes iniciar sesión.");
-      router.push("/login");
+    mutationFn: changePassword,
+    onSuccess: (user) => {
+      setUser(user);
+      setActual("");
+      setPassword("");
+      setConfirmacion("");
+      toast.success("Contraseña actualizada");
+      onSuccess?.(user);
     },
   });
 
-  if (!token) return <EnlaceInvalido />;
-
-  // 400 del backend = token invalido/usado/expirado (la contrasena ya se
-  // valido aqui con las mismas reglas antes de enviar).
-  const tokenRechazado =
-    mutacion.error instanceof AxiosError && mutacion.error.response?.status === 400;
-
-  if (tokenRechazado) return <EnlaceInvalido />;
+  // 400 = actual incorrecta o igual a la nueva: el backend dice el motivo.
+  const errorApi = !mutacion.isError
+    ? null
+    : mutacion.error instanceof AxiosError && mutacion.error.response?.status === 400
+      ? "La contraseña actual no es correcta o la nueva es igual a la actual."
+      : "No se pudo contactar la API. Inténtalo de nuevo.";
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
 
     const error =
+      (actual ? null : "Escribe tu contraseña actual") ??
       validarPassword(password) ??
       (password !== confirmacion ? "Las contraseñas no coinciden" : null);
     setErrorLocal(error);
 
-    if (!error && token) mutacion.mutate({ token, password });
+    if (!error) mutacion.mutate({ currentPassword: actual, password });
   }
+
+  const mensaje = errorLocal ?? errorApi;
 
   return (
     <form onSubmit={enviar} className="flex flex-col gap-5" noValidate>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="actual">Contraseña actual</Label>
+        <Input
+          id="actual"
+          name="actual"
+          type="password"
+          autoComplete="current-password"
+          className="h-10"
+          required
+          value={actual}
+          onChange={(evento) => setActual(evento.target.value)}
+        />
+      </div>
+
       <div className="flex flex-col gap-2">
         <Label htmlFor="password">Nueva contraseña</Label>
         <Input
@@ -89,7 +96,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="confirmacion">Confirmar contraseña</Label>
+        <Label htmlFor="confirmacion">Confirmar nueva contraseña</Label>
         <Input
           id="confirmacion"
           name="confirmacion"
@@ -103,11 +110,9 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         />
       </div>
 
-      {(errorLocal || mutacion.isError) && (
+      {mensaje && (
         <Alert variant="destructive">
-          <AlertDescription>
-            {errorLocal ?? "No se pudo contactar la API. Inténtalo de nuevo."}
-          </AlertDescription>
+          <AlertDescription>{mensaje}</AlertDescription>
         </Alert>
       )}
 

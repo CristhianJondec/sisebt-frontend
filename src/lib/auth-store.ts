@@ -5,6 +5,8 @@ export interface SessionUser {
   id: string;
   email: string;
   role: "ADMIN" | "GRADUATE" | "COMPANY";
+  /** true si el admin restablecio la contrasena: debe cambiarla antes de seguir. */
+  mustChangePassword?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -18,6 +20,7 @@ interface AuthState {
   token: string | null;
   user: SessionUser | null;
   setSession: (session: Session) => void;
+  setUser: (user: SessionUser) => void;
   clearSession: () => void;
 }
 
@@ -34,6 +37,7 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       setSession: ({ accessToken, user }) => set({ token: accessToken, user }),
+      setUser: (user) => set({ user }),
       clearSession: () => set({ token: null, user: null }),
     }),
     {

@@ -6,8 +6,8 @@ export interface Credenciales {
   password: string;
 }
 
-export interface NuevaPassword {
-  token: string;
+export interface CambioPassword {
+  currentPassword: string;
   password: string;
 }
 
@@ -39,16 +39,18 @@ export async function register(cuenta: NuevaCuenta): Promise<SessionUser> {
 }
 
 /**
- * El backend responde 202 con el mismo mensaje exista o no la cuenta, asi que
- * aqui no hay nada que distinguir: solo errores de red o de validacion.
+ * Cambio por el propio usuario (sin correo). 400 si la actual no coincide.
+ * Devuelve el usuario con mustChangePassword en false.
  */
-export async function forgotPassword(email: string): Promise<void> {
-  await apiClient.post("/auth/forgot-password", { email });
+export async function changePassword(datos: CambioPassword): Promise<SessionUser> {
+  const { data } = await apiClient.post<SessionUser>("/auth/change-password", datos);
+  return data;
 }
 
-/** 204 si el token es valido; 400 si es invalido, ya se uso o expiro. */
-export async function resetPassword(datos: NuevaPassword): Promise<void> {
-  await apiClient.post("/auth/reset-password", datos);
+/** Admin: genera una contrasena temporal que se muestra una sola vez. */
+export async function resetUserPassword(id: string): Promise<string> {
+  const { data } = await apiClient.post<{ temporaryPassword: string }>(`/users/${id}/reset-password`);
+  return data.temporaryPassword;
 }
 
 /** Ruta protegida: el interceptor adjunta el bearer token automaticamente. */

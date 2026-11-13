@@ -27,8 +27,15 @@ export default function LoginPage() {
     onSuccess: (sesion) => {
       setSession(sesion);
       toast.success(`Sesión iniciada como ${sesion.user.email}`);
+      // Con contrasena temporal (restablecida por el admin) primero debe cambiarla.
       // El egresado va directo a su perfil: si aun no lo tiene, debe completarlo.
-      router.push(sesion.user.role === "GRADUATE" ? "/perfil" : "/");
+      router.push(
+        sesion.user.mustChangePassword
+          ? "/cambiar-password"
+          : sesion.user.role === "GRADUATE"
+            ? "/perfil"
+            : "/",
+      );
     },
     onError: (error) => {
       const status = error instanceof AxiosError ? error.response?.status : undefined;

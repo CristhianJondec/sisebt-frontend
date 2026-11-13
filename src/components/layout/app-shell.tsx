@@ -10,6 +10,7 @@ import {
   FileUser,
   GraduationCap,
   House,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   type LucideIcon,
@@ -23,7 +24,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 import { Brand } from "@/components/layout/brand";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useAuthStore } from "@/lib/auth-store";
 import { QK, fetchNotifications } from "@/lib/jobs";
 import { ROLE_LABELS, type Role, iniciales } from "@/lib/roles";
@@ -100,6 +101,8 @@ const NAVEGACION: Record<Role, NavSection[]> = {
   ],
 };
 
+const CAMBIAR_PASSWORD = "/cambiar-password";
+
 /** Avisos sin leer; se refresca cada minuto mientras la app esta abierta. */
 function useNoLeidas(): number {
   const { user } = useSession();
@@ -167,6 +170,10 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           </span>
           <span className="text-xs text-muted-foreground">{ROLE_LABELS[user.role]}</span>
         </div>
+        <Link href={CAMBIAR_PASSWORD} onClick={onNavigate} aria-label="Cambiar contraseña"
+          title="Cambiar contraseña" className={buttonVariants({ variant: "ghost", size: "icon-sm" })}>
+          <KeyRound aria-hidden />
+        </Link>
         <Button variant="ghost" size="icon-sm" aria-label="Cerrar sesión" title="Cerrar sesión"
           onClick={clearSession}>
           <LogOut aria-hidden />
@@ -183,7 +190,8 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { hidratada, token } = useSession();
+  const { hidratada, token, user } = useSession();
+  const debeCambiar = Boolean(user?.mustChangePassword) && pathname !== CAMBIAR_PASSWORD;
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [rutaMenu, setRutaMenu] = useState(pathname);
   const noLeidas = useNoLeidas();
@@ -196,9 +204,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (hidratada && !token) router.replace("/login");
-  }, [hidratada, token, router]);
+    // Contrasena temporal: no se navega a ningun otro sitio hasta cambiarla.
+    else if (debeCambiar) router.replace(CAMBIAR_PASSWORD);
+  }, [hidratada, token, debeCambiar, router]);
 
-  if (!hidratada || !token) return null;
+  if (!hidratada || !token || debeCambiar) return null;
 
   return (
     <div className="flex min-h-svh w-full">

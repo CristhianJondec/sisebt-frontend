@@ -37,11 +37,4 @@ export const handlers = [
   http.get(`${API_BASE}/health`, () => HttpResponse.json(healthUp)),
   http.post(`${API_BASE}/auth/login`, () => HttpResponse.json(SESION)),
   http.get(`${API_BASE}/users`, () => HttpResponse.json([USUARIO])),
-  http.post(`${API_BASE}/auth/forgot-password`, () =>
-    HttpResponse.json(
-      { message: "Si el correo esta registrado, recibiras un enlace" },
-      { status: 202 },
-    ),
-  ),
-  http.post(`${API_BASE}/auth/reset-password`, () => new HttpResponse(null, { status: 204 })),
 ];
